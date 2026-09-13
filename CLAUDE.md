@@ -81,9 +81,23 @@ second client on the same MCP tools.
   for" as a typed role with alias matching (ML engineer ↔ machine learning engineer), recent hires y/n.
   Signals: pains by segment with the same filter rail, one-click sequence per pain. Feed: team-wide,
   detector-driven items with evidence links, including team meetings booked with the pains tagged on the
-  call. Home: plain-language entry over the same MCP tools — paste an email to get matching contacts and
-  a proposed sequence, typed filters, "what's working". Filters on Contacts, Accounts, and Signals are
-  expandable rows with chips: type-to-add for title/industry/location/hiring, include/exclude on industry.
+  call; evidence is shown as plain sentences or quotes with "— Name, Title at Company", never record ids
+  (ids are stored behind each item for the join). Home: a greeting, one composer, and a Recent list of
+  past chats — no canned prompts, no mode toggle; plain-language entry over the same MCP tools (paste an
+  email to get matching contacts and a proposed sequence, typed filters, "what's working"). Filters on
+  Contacts, Accounts, and Signals are expandable rows with chips: type-to-add for
+  title/industry/location/hiring, include/exclude on industry.
+- Agent: the always-on agent is present on every page except the Enroll modal. A bottom-right launcher
+  opens a right sidebar (default) with a switch-mode menu of Sidebar / Floating / Full screen (a divider
+  before Full screen; Full screen shows the Home chat over the page), a "new chat" plus button, and a
+  hide chevron. The composer carries a context pill naming only the current tab (Contacts, Accounts,
+  Signals, Feed, Queue), removable by the user. Every page exposes its state (active filters, selection,
+  current item) as one small object the agent receives as context; the agent uses the same MCP tools as
+  Home.
+- Motion: every open/close/toggle transition uses one easing — 260ms cubic-bezier(.2,.8,.2,1);
+  prefers-reduced-motion disables it.
+- Layout: lists keep their spacing when the agent sidebar is open — past a minimum width they scroll
+  horizontally rather than reflowing.
 - Products: play and product are orthogonal. `contracts/products.yaml` (five products: market_data,
   market_pricing, compensation_planning, total_rewards, pave_agent) is the only source of product claims
   a draft may make. Enrollment records a `product_arc` — one product for the whole sequence, or a

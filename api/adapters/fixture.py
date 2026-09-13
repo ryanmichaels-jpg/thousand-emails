@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import json
 import os
+import re
 from collections.abc import Iterator
 from datetime import UTC, datetime
 from typing import Any, ClassVar
@@ -123,12 +124,21 @@ class FixtureMarketCard:
 
 
 class FixtureLLM:
-    """Deterministic stand-in. The only prompt stage 2 sends is the persona fallback, which in the
-    fixture world is only reached by titles outside the HR/TRC/TAL/FIN vocabularies -- so OTHER is
-    the honest answer. Stages 3-4 replace this per prompt as their fixtures are built."""
+    """Deterministic stand-in, one canned behavior per known prompt shape. Persona fallback -> OTHER
+    (in the fixture world only truly-OTHER titles reach it). Draft prompts -> a short email that cites
+    the first facts verbatim, so the rubric is exercised without a network. Anything else raises."""
     def complete(self, system, user, *, model, max_tokens=800, json_schema=None):
-        if json_schema and "persona" in json_schema.get("properties", {}):
+        props = (json_schema or {}).get("properties", {})
+        if "persona" in props:
             return json.dumps({"persona": "OTHER"})
+        if "body" in props and "subject" in props:
+            m = re.match(r"Prospect: (\S+) .*? at (.*?) \(", user)
+            first, company = (m.group(1), m.group(2)) if m else ("there", "your team")
+            facts = [ln[2:].split(" (source")[0] for ln in user.splitlines() if ln.startswith("- ")]
+            cited = "; ".join(facts[:2]) or "your current setup"
+            body = (f"{first} — noted: {cited}.\n\nPave prices roles against live market data, so comp "
+                    f"decisions at {company} start from numbers both sides trust.\n\nWorth a quick look?")
+            return json.dumps({"subject": f"a comp question for {company}", "body": body})
         raise NotImplementedError(f"fixture LLM has no canned answer for this prompt: {user[:80]!r}")
     def embed(self, texts):
         raise NotImplementedError("fixture LLM embeddings arrive with the transcript-chunk stage")

@@ -16,5 +16,7 @@ rules:
   - { reason: competitor_partner,  action: exclude, where: "account.Type in ('Partner','Competitor','Vendor')" }
   - { reason: unresolved_identity, action: exclude, where: "contact cannot be matched to an account" }
   - { reason: in_conversation,     action: exclude, where: "positive reply in last 180 days" }
+  - { reason: email_domain_mismatch, action: shadow, where: "contact email domain != account domain after stripping known subdomains" }
+  - { reason: left_per_vendor,       action: shadow, where: "vendor employment history shows a newer current employer than the Salesforce account" }
 cooldowns: { no_response_days: 60, negative_days: 180, unsubscribe: permanent, account_rest_days: 90 }
 concurrency: { reps_per_account: 1 }

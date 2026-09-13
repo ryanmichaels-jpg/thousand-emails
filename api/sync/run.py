@@ -24,7 +24,7 @@ from api.adapters.base import Row
 
 SF_OBJECTS = {"Account": "account", "Contact": "contact", "Contract": "contract", "Opportunity": "opportunity",
               "OpportunityContactRole": "opportunity_contact_role", "Event": "event", "Task": "task"}
-OUTREACH_RESOURCES = ("prospect", "sequence", "sequence_state", "mailing")
+OUTREACH_RESOURCES = ("prospect", "sequence", "sequence_state", "mailing", "sent_email")
 BIGQUERY_TABLES = ("users", "searches", "datalab_queries")
 
 # fields whose null rate we watch, per (source, table): the joins and sends downstream break silently

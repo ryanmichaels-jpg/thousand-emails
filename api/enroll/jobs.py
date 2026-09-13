@@ -5,9 +5,9 @@ reason; the contract decides the action (exclude vs shadow). Guardrail rule of t
 are enforced in the patch cutter and re-checked in the enrollment path, never in prompts.
 
 Traps this catches from the fixture world: opted_out_but_in_sequence -> opted_out, orphan_contact ->
-unresolved_identity. stale_still_at_company and domain_mismatch are NOT catchable from current
-sources (the seed plants no enrichment/verification signal for them); they wait on the
-re-enrichment/verification loop.
+unresolved_identity (hard excludes); domain_mismatch -> email_domain_mismatch and
+stale_still_at_company -> left_per_vendor (shadow: logged, not enforced, promoted when the log
+looks right).
 
 Usage:  python -m api.enroll.jobs
 """
@@ -119,6 +119,21 @@ RULE_SQL: dict[str, tuple[str, str]] = {
         join raw_salesforce.contact c on c."Id" = p.contact_id
         where ss.reply_kind in ('positive', 'referral')
           and coalesce(nullif(ss.finished_at, ''), ss.started_at) >= %(d180)s"""),
+    "email_domain_mismatch": ("salesforce", r"""
+        select c."Id", c."AccountId" from raw_salesforce.contact c
+        join raw_salesforce.account a on a."Id" = c."AccountId"
+        where c."Email" <> '' and a."Domain" <> ''
+          and regexp_replace(lower(split_part(c."Email", '@', 2)), '^(www|mail|corp|email|hr|jobs)\.', '')
+           <> regexp_replace(lower(a."Domain"), '^(www|mail|corp|email|hr|jobs)\.', '')"""),
+    "left_per_vendor": ("enrichment", """
+        select c."Id", c."AccountId" from raw_salesforce.contact c
+        join raw_salesforce.account a on a."Id" = c."AccountId"
+        join raw_enrichment.employment_history cur
+          on cur.contact_id = c."Id" and cur.is_current = 'true'
+         and lower(coalesce(cur.company_domain, '')) <> lower(a."Domain")
+        where not exists (select 1 from raw_enrichment.employment_history still
+                          where still.contact_id = c."Id" and still.is_current = 'true'
+                            and lower(still.company_domain) = lower(a."Domain"))"""),
 }
 
 

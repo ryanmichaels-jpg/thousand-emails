@@ -44,7 +44,7 @@ create index if not exists contact_fact_lookup on contact_fact (contact_id, fiel
 create table if not exists exclusion (
   contact_id  text not null,
   account_id  text,
-  reason      text not null,                   -- 'customer','open_opp','ae_owned','touched_60d','bounced','unsubscribed','dnc','opted_out','no_email','not_at_company','cooldown','competitor_partner','unresolved_identity','in_conversation'
+  reason      text not null,                   -- 'customer','open_opp','ae_owned','touched_60d','bounced','unsubscribed','dnc','opted_out','no_email','not_at_company','cooldown','competitor_partner','unresolved_identity','in_conversation','email_domain_mismatch','left_per_vendor'
   source      text not null,
   action      text not null default 'exclude', -- 'exclude' | 'shadow' (logged, not enforced)
   computed_at timestamptz not null default now(),

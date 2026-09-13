@@ -1,0 +1,15 @@
+name: hiring_covered_roles
+version: 1
+owner: manager_1
+visibility: org
+trigger: "the account has open roles in job families Pave's dataset covers"
+segment: { bands: ["51-200", "201-1000", "1001-5000", "5000+"], personas: [TRC, TAL, HR] }
+required_facts:
+  - { field: open_roles_covered, max_age_days: 45 }
+  - { field: headcount, max_age_days: 180 }
+optional_facts: [ new_exec_hire, competitor_mentioned, pain_family ]
+default_mode: 2
+modes_allowed: [1, 2, 3, 4]
+autonomy_rung: draft_only
+banned_phrases: ["i hope this finds you well", "hope this finds you well", "pricing", "guarantee"]
+outcome: { event: meeting, attribution_window_days: 21 }

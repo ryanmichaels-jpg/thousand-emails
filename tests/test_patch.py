@@ -2,9 +2,9 @@
 cap, holdout is exactly 10%, enrollment is idempotent and guarded, and reconciliation flags drift
 in both directions. Skips when Postgres is not up (make up && make load && make schema + migrations).
 
-Trap coverage note: stale_still_at_company and domain_mismatch are not asserted here because the
-seed plants no pipeline-visible signal for them (enrichment shows those contacts current at their
-account); they belong to the future re-enrichment/verification loop."""
+All four exclusion traps are planted with pipeline-visible signals: opted-out and orphans as hard
+excludes; domain mismatches (email_domain_mismatch) and stale still-at-company flags
+(left_per_vendor, via the newer-current-employer rows the seed plants) as shadow rules."""
 import csv
 import os
 
@@ -68,6 +68,26 @@ def test_exclusions_catch_injected_traps(world):
         assert cur.fetchone()[0] == 0                      # deleted contacts are filtered, not excluded
         cur.execute("select count(*) from app.patch_member where contact_id = any(%s)", (list(deleted),))
         assert cur.fetchone()[0] == 0
+
+
+def _live_linked(cur, ids: set[str]) -> set[str]:
+    cur.execute("""select "Id" from raw_salesforce.contact
+                   where "IsDeleted" = 'false' and "AccountId" <> '' and "Id" = any(%s)""", (list(ids),))
+    return {r for (r,) in cur.fetchall()}
+
+
+def test_shadow_rules_catch_domain_mismatch_and_left_per_vendor(world):
+    with psycopg.connect(DB) as conn, conn.cursor() as cur:
+        mismatched = _live_linked(cur, _mess("domain_mismatch"))
+        cur.execute("select contact_id, action from app.exclusion where reason = 'email_domain_mismatch'")
+        rows = cur.fetchall()
+        assert mismatched and mismatched <= {r for r, _ in rows}
+        assert {a for _, a in rows} == {"shadow"}
+        left = _live_linked(cur, _mess("stale_still_at_company"))
+        cur.execute("select contact_id, action from app.exclusion where reason = 'left_per_vendor'")
+        rows = cur.fetchall()
+        assert left and left <= {r for r, _ in rows}
+        assert {a for _, a in rows} == {"shadow"}
 
 
 def test_patch_caps(world):

@@ -36,6 +36,10 @@ list of roles Pave has data for.
 - `past_customer_links.csv`: contacts planted with a prior job at a customer or former customer during its subscription, with evidence level. The overlap join should find all of them and nothing else.
 - `planted_call_tags.csv`: every pain (family/subdivision), objection and competitor mention planted in a transcript, with the verbatim evidence quote and turn. Tagger precision/recall is measured here.
 - `injected_mess.csv`: every imperfection injected (duplicates, title typos, domain mismatches, stale still-at-company flags, orphans, soft deletes, opted-out-but-sequenced, mid-year type changes). Each is a test: was it caught or handled?
+  Both formerly-invisible traps are now planted with pipeline-visible signals: domain mismatches give the
+  contact an email at a different account's domain (caught by the `email_domain_mismatch` shadow rule), and
+  stale still-at-company contacts get an end-dated account position plus a newer current employer in
+  `enrichment/employment_history.csv` (caught by the `left_per_vendor` shadow rule).
 - `summary.json`, `seed.yaml`: counts and the config that produced them.
 
 ## Things the generator gets deliberately right

@@ -11,4 +11,5 @@ optional_facts: [ open_roles_covered, competitor_mentioned, pain_family ]
 default_mode: 2
 modes_allowed: [1, 2, 3, 4]
 autonomy_rung: draft_only     # draft_only | suggested_send | send_with_undo | send
+banned_phrases: ["i hope this finds you well", "hope this finds you well", "pricing", "guarantee"]   # mechanically checkable subset of skill.md's never list
 outcome: { event: meeting, attribution_window_days: 21 }

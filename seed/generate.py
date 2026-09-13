@@ -224,7 +224,17 @@ def gen_contacts(accounts):
             # employment history: current + 1..3 prior
             pid = ID("per")
             cur_start = rand_date(dt.date(2016, 1, 1), AS_OF - dt.timedelta(days=60))
-            employment.append({"person_id": pid, "contact_id": cid, "company": a["Name"], "company_domain": a["Domain"], "title": title, "start": cur_start.isoformat(), "end": "", "is_current": "true"})
+            if "_left" in c:
+                # the stale-flag trap is plantable in vendor data: the account position ended 30-200 days
+                # ago and a newer current employer exists. Local Random keeps the global RNG sequence intact.
+                LR = random.Random(f"left:{cid}")
+                left_end = max(AS_OF - dt.timedelta(days=LR.randint(30, 200)), cur_start + dt.timedelta(days=30))
+                employment.append({"person_id": pid, "contact_id": cid, "company": a["Name"], "company_domain": a["Domain"], "title": title, "start": cur_start.isoformat(), "end": left_end.isoformat(), "is_current": "false"})
+                new_co = f"{LR.choice(CO_A)} {LR.choice([w for ws in CO_B.values() for w in ws])}"
+                employment.append({"person_id": pid, "contact_id": cid, "company": new_co, "company_domain": new_co.lower().replace(" ", "") + ".works",
+                                   "title": title, "start": (left_end + dt.timedelta(days=LR.randint(5, 30))).isoformat(), "end": "", "is_current": "true"})
+            else:
+                employment.append({"person_id": pid, "contact_id": cid, "company": a["Name"], "company_domain": a["Domain"], "title": title, "start": cur_start.isoformat(), "end": "", "is_current": "true"})
             end = cur_start; planted = a["_type"] == "prospect" and R.random() < Cc["past_customer_share"]
             for k in range(R.randint(1, 3)):
                 start = end - dt.timedelta(days=R.randint(400, 1800))
@@ -440,6 +450,57 @@ def gen_jobs(accounts):
                          "excerpt": f"{a['Name']} is hiring a {t} to join our {f} team.", "dataset_covered": "true" if FAM[f]["covered"] else "false"})
     return rows
 
+# ----------------------------------------------------------------------------- 8. rep sent emails (voice corpus)
+def gen_sent_emails():
+    """Two distinct rep voices for the voice-profile extractor. Own Random stream: adding or editing
+    these never shifts the rest of the world."""
+    VR = random.Random("rep-voice")
+
+    def co():
+        return f"{VR.choice(CO_A)} {VR.choice([w for ws in CO_B.values() for w in ws])}"
+    t1_open = ["Saw {co} is hiring two comp analysts.", "Quick one.", "Ranges came up twice on calls this week.",
+               "Your team posted a rewards role Friday.", "New CFO usually means new comp questions.",
+               "Merit cycle season is close.", "Comp reviews eat quarters."]
+    t1_mid = ["Pave prices roles against live data, not last year's survey.", "We cut range-building from weeks to days.",
+              "Numbers both sides trust, one source.", "Live percentiles beat stale survey matches.",
+              "Budget talks go faster with shared numbers."]
+    t1_q = ["Worth 15 minutes?", "Who owns ranges at {co}?", "Is this on your plate this quarter?",
+            "Open to a quick look?", "Should I send a two-line summary instead?"]
+    t2_open = ["I was reading about {co}'s growth and it made me think about how comp planning usually gets harder right at this stage.",
+               "I've been talking with a few people teams your size lately, and the same compensation questions keep coming up.",
+               "I noticed {co} has been hiring steadily, which usually means pay ranges are getting a fresh look."]
+    t2_mid = ["What we hear most often is that the hardest part isn't the numbers themselves, it's getting everyone to agree on where they came from.",
+              "Pave connects live market data straight into your planning, so the conversation starts from numbers everyone already trusts.",
+              "Teams tell us the biggest relief is walking into a budget review with one source of truth instead of three spreadsheets."]
+    t2_q = ["Would it be helpful to see how that looks with your own roles?", "Would a short walkthrough be useful sometime in the next couple of weeks?",
+            "Is compensation planning something on your radar this quarter?"]
+    template_body = ("{first} — saw {co} brought on a new CFO recently.\n\nMost finance leaders spend their first quarter "
+                     "asking how pay decisions are defended. Pave prices your roles against live market data.\n\n"
+                     "When your new CFO asks how ranges were set, what's the answer today?")
+    rows = []
+    for rep, signoff in (("sdr_1", "— Rep One"), ("sdr_2", "Warm regards,\nRep Two")):
+        for i in range(40):
+            is_template = i >= 30
+            first, company = VR.choice(FIRST), co()
+            if is_template:
+                subject, body = f"new CFO at {company}", template_body.format(first=first, co=company)
+            elif rep == "sdr_1":
+                subject = VR.choice(["ranges", "comp question", "quick one", "pricing roles", "merit cycle"])
+                body = f"{first} —\n\n{VR.choice(t1_open).format(co=company)} {VR.choice(t1_mid)}\n\n{VR.choice(t1_q).format(co=company)}\n\n{signoff}"
+            else:
+                subject = VR.choice([f"A thought on compensation planning at {company}", f"How {company} might simplify comp reviews",
+                                     "Hoping this is useful as planning season approaches"])
+                body = (f"Hi {first},\n\nHope your week's going well! {VR.choice(t2_open).format(co=company)} "
+                        f"{VR.choice(t2_mid)} {VR.choice(t2_mid)}\n\n{VR.choice(t2_q)} No worries at all if the "
+                        f"timing isn't right — happy to circle back whenever works.\n\n{signoff}")
+            rows.append({"id": f"sent_{rep}_{i + 1:03d}", "rep": rep, "to_name": first, "subject": subject, "body": body,
+                         "sent_at": (dt.date(2026, 1, 5) + dt.timedelta(days=VR.randint(0, 240))).isoformat(),
+                         "replied": "true" if not is_template and VR.random() < 0.4 else "false",
+                         "is_template": "true" if is_template else "false"})
+    voices = {"sdr_1": {"style": "terse_direct", "greeting": "dash", "signoff": "— Rep One", "target_words": [25, 60]},
+              "sdr_2": {"style": "warm_long", "greeting": "hi_hope", "signoff": "Warm regards, Rep Two", "target_words": [90, 150]}}
+    return rows, voices
+
 # ----------------------------------------------------------------------------- main
 def main():
     if os.path.exists(OUT): shutil.rmtree(OUT)
@@ -451,6 +512,7 @@ def main():
     calls, planted = gen_gong(accounts, contacts, touched, opps, takers)
     users, searches, lab = gen_bigquery(accounts, contacts)
     jobs = gen_jobs(accounts)
+    sent_emails, rep_voices = gen_sent_emails()
 
     # salesforce
     dump_csv("salesforce/account.csv", accounts, ["Id", "Name", "Website", "Domain", "Industry", "NumberOfEmployees", "HeadcountBand__c", "Type", "BillingCountry", "OwnerId", "AccountScore__c", "CreatedDate", "IsDeleted"])
@@ -460,6 +522,7 @@ def main():
     dump_csv("salesforce/event.csv", events); dump_csv("salesforce/task.csv", tasks, ["Id", "WhoId", "WhatId", "Subject", "TaskSubtype", "ActivityDate", "Status", "CallDisposition", "OwnerId"])
     # outreach
     dump_csv("outreach/sequence.csv", seqs); dump_csv("outreach/prospect.csv", prospects_o); dump_csv("outreach/sequence_state.csv", states); dump_csv("outreach/mailing.csv", mailings)
+    dump_csv("outreach/sent_email.csv", sent_emails, ["id", "rep", "to_name", "subject", "body", "sent_at", "replied", "is_template"])
     # enrichment
     dump_csv("enrichment/employment_history.csv", employment); dump_csv("enrichment/org_shape.csv", org); dump_csv("enrichment/linkedin_activity.csv", li); dump_csv("enrichment/job_posting.csv", jobs)
     # bigquery, gong, calendar
@@ -477,11 +540,14 @@ def main():
     dump_csv("truth/persona_size_lift.csv", truth_lift); dump_csv("truth/contact_persona.csv", truth_persona); dump_csv("truth/past_customer_links.csv", past_links)
     dump_csv("truth/meeting_takers.csv", takers); dump_csv("truth/planted_call_tags.csv", planted); dump_csv("truth/injected_mess.csv", MESS, ["kind", "entity", "id", "note"])
     shutil.copy(os.path.join(HERE, "seed.yaml"), os.path.join(OUT, "truth", "seed.yaml"))
+    with open(os.path.join(OUT, "truth", "rep_voice.json"), "w") as vf:
+        json.dump(rep_voices, vf, indent=2)
     # summary
     summ = {"accounts": Counter(a["Type"] for a in accounts), "bands": Counter(a["HeadcountBand__c"] for a in accounts), "industries": Counter(a["Industry"] for a in accounts),
             "contacts": len(contacts), "contacts_touched_2026": len(touched), "nb_opportunities_2026": len(opps), "mailings": len(mailings), "tasks": len(tasks),
             "gong_calls": len(calls), "gong_transcripts": sum(1 for c in calls if c["has_transcript"] == "true"), "planted_tags": len(planted),
-            "bigquery_users": len(users), "searches": len(searches), "datalab_queries": len(lab), "job_postings": len(jobs), "past_customer_links": len(past_links), "mess_rows": len(MESS)}
+            "bigquery_users": len(users), "searches": len(searches), "datalab_queries": len(lab), "job_postings": len(jobs), "past_customer_links": len(past_links), "mess_rows": len(MESS),
+            "sent_emails": len(sent_emails)}
     with open(os.path.join(OUT, "truth", "summary.json"), "w") as sf:
         json.dump({k: (dict(v) if isinstance(v, Counter) else v) for k, v in summ.items()}, sf, indent=2)
     for k, v in summ.items(): print(f"{k:28} {dict(v) if isinstance(v, Counter) else v}")
