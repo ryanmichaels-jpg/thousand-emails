@@ -41,6 +41,11 @@ class RealCalendar:
     def __init__(self, **opts): raise _NotBuilt("RealCalendar", "workspace calendar credentials")
 
 
+class RealLLM:
+    """Anthropic SDK with the org API key. Env ANTHROPIC_API_KEY; models come from config/sources.yaml llm block."""
+    def __init__(self, **opts): raise _NotBuilt("RealLLM", "ANTHROPIC_API_KEY; pip install anthropic")
+
+
 class OutreachSender:
     """Path A: write drafted bodies to Outreach custom fields; Outreach sends within its own limits. Uses RealOutreach."""
     def __init__(self, **opts): raise _NotBuilt("OutreachSender", "RealOutreach")

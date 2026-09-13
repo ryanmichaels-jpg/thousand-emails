@@ -61,6 +61,16 @@ create table if not exists contact_touch_state (
 );
 
 -- ---------------------------------------------------------------- scoring
+create table if not exists title_classification (
+  title         text primary key,
+  persona       text not null,
+  seniority     text not null,
+  method        text not null check (method in ('rule', 'llm')),
+  model         text,                            -- null for rule matches
+  rules_version text not null,
+  classified_at timestamptz not null default now()
+);
+
 create table if not exists score_history (
   id              bigserial primary key,
   entity_type     text not null check (entity_type in ('account','contact')),

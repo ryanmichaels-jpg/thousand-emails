@@ -1,6 +1,6 @@
 # Title -> persona + seniority. Rules first (auditable); LLM fallback only into this same vocabulary.
 # Scored against seed/fixtures/truth/contact_persona.csv. Update version on any change.
-version: 1
+version: 2
 personas: [HR, TRC, TAL, FIN, OTHER]
 seniority: [C, VP, Director, Manager, IC]
 persona_patterns:   # first match wins, case-insensitive
@@ -10,7 +10,7 @@ persona_patterns:   # first match wins, case-insensitive
   FIN:   ['\bfinance\b', 'fp&a', '\bcfo\b', 'controller', 'financial', 'accounting']
   OTHER: ['.*']
 seniority_patterns:
-  C:        ['^chief', '\bc[a-z]o\b', 'founder', '^president']
+  C:        ['^chief', '\bc[a-z]o\b', 'founder', '^president', '\bchro\b', '\bcpo\b', 'chief people']
   VP:       ['\bvp\b', 'vice president', '\bsvp\b', '\bevp\b']
   Director: ['director', '\bdir\.?\b', '^head of', '\bhead\b', 'controller']
   Manager:  ['manager', '\bmgr\b', 'business partner', 'hrbp', 'partner', 'lead']

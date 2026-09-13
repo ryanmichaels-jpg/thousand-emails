@@ -8,6 +8,7 @@ sources:
   enrichment: { mode: fixture }   # real options: { vendor: apollo|zoominfo|clay|pdl }
   calendar:   { mode: fixture }
   sender:     { mode: fixture }   # fixture = StubSender; real = OutreachSender (path A) or PoolSender (path B)
+  llm:        { mode: fixture }   # fixture = deterministic stub; real = Anthropic (models in the llm block below)
 llm:
   provider: anthropic
   draft_model: claude-sonnet-4-5        # cheap enough for 10k drafts/day; pin and record in draft.model

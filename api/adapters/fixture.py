@@ -108,6 +108,18 @@ class FixtureCalendar:
     def count_events(self, since=None): return sum(1 for _ in _read("calendar", "event"))
 
 
+class FixtureLLM:
+    """Deterministic stand-in. The only prompt stage 2 sends is the persona fallback, which in the
+    fixture world is only reached by titles outside the HR/TRC/TAL/FIN vocabularies -- so OTHER is
+    the honest answer. Stages 3-4 replace this per prompt as their fixtures are built."""
+    def complete(self, system, user, *, model, max_tokens=800, json_schema=None):
+        if json_schema and "persona" in json_schema.get("properties", {}):
+            return json.dumps({"persona": "OTHER"})
+        raise NotImplementedError(f"fixture LLM has no canned answer for this prompt: {user[:80]!r}")
+    def embed(self, texts):
+        raise NotImplementedError("fixture LLM embeddings arrive with the transcript-chunk stage")
+
+
 class StubSender:
     """Records sends; never touches a network. Path A/B implementations replace this."""
     def __init__(self): self.sent: list[dict[str, Any]] = []; self.suppressed: dict[str, str] = {}
