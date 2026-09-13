@@ -5,7 +5,12 @@ Usage:  DATABASE_URL=postgresql://user:pass@localhost:5432/thousand python load.
 Requires: pip install psycopg   (psycopg 3)
 The raw layer is deliberately untyped; dbt models cast and clean.
 """
-import csv, json, os, sys, glob
+import csv
+import glob
+import json
+import os
+import sys
+
 import psycopg
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures")
@@ -20,8 +25,10 @@ with psycopg.connect(url) as conn, conn.cursor() as cur:
             cols = next(csv.reader(f))
         cur.execute(f'create schema if not exists "{schema}"')
         cur.execute(f'drop table if exists "{schema}"."{table}"')
-        cur.execute(f'create table "{schema}"."{table}" ({", ".join(f"\"{c}\" text" for c in cols)}, _synced_at timestamptz default now())')
-        with open(path) as f, cur.copy(f'copy "{schema}"."{table}" ({", ".join(f"\"{c}\"" for c in cols)}) from stdin with (format csv, header true)') as cp:
+        col_ddl = ", ".join(f'"{c}" text' for c in cols)
+        col_list = ", ".join(f'"{c}"' for c in cols)
+        cur.execute(f'create table "{schema}"."{table}" ({col_ddl}, _synced_at timestamptz default now())')
+        with open(path) as f, cur.copy(f'copy "{schema}"."{table}" ({col_list}) from stdin with (format csv, header true)') as cp:
             for chunk in iter(lambda: f.read(1 << 20), ""): cp.write(chunk)
         cur.execute(f'select count(*) from "{schema}"."{table}"'); print(f"{schema}.{table:28} {cur.fetchone()[0]:>8}")
     # transcripts: jsonl -> jsonb rows

@@ -1,5 +1,6 @@
 from api.adapters import get_adapter
 
+
 def test_fixture_outreach_enrollment_is_idempotent():
     o = get_adapter("outreach")
     pid = o.upsert_prospect({"Email": "Someone.New@example.com"})

@@ -1,7 +1,11 @@
 """get_adapter(name) -> the implementation config/sources.yaml selects. Real* classes are stubs until built."""
 from __future__ import annotations
-import os, yaml
-from functools import lru_cache
+
+import os
+from functools import cache
+
+import yaml
+
 from . import fixture
 
 CONFIG = os.environ.get("SOURCES_CONFIG", os.path.join(os.path.dirname(__file__), "..", "..", "config", "sources.yaml"))
@@ -14,14 +18,15 @@ FIXTURE = {
 
 
 def _real(name: str):
-    from . import real   # imported lazily so fixture mode never needs vendor SDKs installed
+    from . import real  # imported lazily so fixture mode never needs vendor SDKs installed
     return {"salesforce": real.RealSalesforce, "outreach": real.RealOutreach, "gong": real.RealGong, "bigquery": real.RealBigQuery,
             "enrichment": real.RealEnrichment, "calendar": real.RealCalendar, "sender": real.OutreachSender}[name]
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_adapter(name: str):
-    cfg = yaml.safe_load(open(CONFIG))["sources"]
+    with open(CONFIG) as f:
+        cfg = yaml.safe_load(f)["sources"]
     mode = cfg[name]["mode"]
     if mode == "fixture": return FIXTURE[name]()
     if mode == "real": return _real(name)(**cfg[name].get("options", {}))

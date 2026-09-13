@@ -71,6 +71,10 @@ second client on the same MCP tools.
     make test        # pytest
     make demo        # seed + up + load + schema + score + patch + draft 50 + open the Queue
 
+Local dev runs against Homebrew Postgres 16 on `localhost:5432` (db/user/password `thousand`);
+pgvector is optional until embeddings land. Docker Compose (`make up`) is the alternative and
+provides the same database plus the API container.
+
 ## Build stages (each has a demo)
 
 1. Foundation: schema, dbt models, fixture adapters, facts, exclusions, score_history.

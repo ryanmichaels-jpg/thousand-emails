@@ -1,9 +1,14 @@
 """Fixture adapters: read seed/fixtures/<source>/*.csv and behave like the real thing, including
 idempotency and an in-memory write log so tests can assert what would have been sent to the vendor."""
 from __future__ import annotations
-import csv, json, os
-from datetime import datetime
-from typing import Iterator, Iterable, Any
+
+import csv
+import json
+import os
+from collections.abc import Iterator
+from datetime import UTC, datetime
+from typing import Any, ClassVar
+
 from .base import Row, SendResult
 
 FIXTURES = os.environ.get("FIXTURES_DIR", os.path.join(os.path.dirname(__file__), "..", "..", "seed", "fixtures"))
@@ -15,8 +20,8 @@ def _read(source: str, name: str) -> Iterator[Row]:
 
 
 class FixtureSalesforce:
-    OBJECTS = {"Account": "account", "Contact": "contact", "Contract": "contract", "Opportunity": "opportunity",
-               "OpportunityContactRole": "opportunity_contact_role", "Event": "event", "Task": "task"}
+    OBJECTS: ClassVar[dict[str, str]] = {"Account": "account", "Contact": "contact", "Contract": "contract", "Opportunity": "opportunity",
+                                         "OpportunityContactRole": "opportunity_contact_role", "Event": "event", "Task": "task"}
     def __init__(self): self.writes: list[tuple[str, str, Row]] = []
     def pull(self, sobject, fields, since=None):
         for r in _read("salesforce", self.OBJECTS[sobject]):
@@ -66,7 +71,7 @@ class FixtureGong:
 
 
 class FixtureBigQuery:
-    TABLES = {"users": "users", "searches": "searches", "datalab_queries": "datalab_queries"}
+    TABLES: ClassVar[dict[str, str]] = {"users": "users", "searches": "searches", "datalab_queries": "datalab_queries"}
     def query(self, sql): raise NotImplementedError("fixture BigQuery supports export_table only; put SQL in dbt")
     def export_table(self, table, since=None): yield from _read("bigquery", self.TABLES[table])
     def count(self, table): return sum(1 for _ in _read("bigquery", self.TABLES[table]))
@@ -108,7 +113,7 @@ class StubSender:
     def __init__(self): self.sent: list[dict[str, Any]] = []; self.suppressed: dict[str, str] = {}
     def send(self, draft_id, to_email, subject, body, thread_key=None):
         if to_email.lower() in self.suppressed: raise PermissionError(f"suppressed: {to_email}")
-        r = SendResult(message_id=f"stub-{len(self.sent) + 1:08d}", mailbox="stub@pave-pool-1.com", sent_at=datetime.utcnow())
+        r = SendResult(message_id=f"stub-{len(self.sent) + 1:08d}", mailbox="stub@pave-pool-1.com", sent_at=datetime.now(UTC))
         self.sent.append({"draft_id": draft_id, "to": to_email, "subject": subject, "thread_key": thread_key, **r.__dict__})
         return r
     def suppress(self, email, reason): self.suppressed[email.lower()] = reason

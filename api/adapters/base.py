@@ -4,10 +4,11 @@ Each source has a Fixture implementation (reads seed/fixtures/<source>/) and a R
 config/sources.yaml decides which one `get_adapter()` returns. Add a method here before you need it.
 """
 from __future__ import annotations
-from dataclasses import dataclass
-from datetime import date, datetime
-from typing import Iterable, Iterator, Protocol, Any
 
+from collections.abc import Iterable, Iterator
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any, Protocol
 
 Row = dict[str, Any]
 

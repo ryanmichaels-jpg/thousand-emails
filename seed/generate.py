@@ -5,14 +5,22 @@ Reads seed.yaml (distributions, not records), writes fixture CSV/JSONL files in 
 shape of each source system, plus a truth/ folder recording what was planted so the
 pipeline can be tested against it. Stdlib + PyYAML only. Deterministic per seed.
 """
-import csv, json, math, os, random, sys, shutil
+import csv
 import datetime as dt
+import json
+import math
+import os
+import random
+import shutil
 from collections import Counter, defaultdict
+
 import yaml
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-CFG = yaml.safe_load(open(os.path.join(HERE, "seed.yaml")))
-FAM = yaml.safe_load(open(os.path.join(HERE, CFG["job_postings"]["families_file"])))["families"]
+with open(os.path.join(HERE, "seed.yaml")) as _f:
+    CFG = yaml.safe_load(_f)
+with open(os.path.join(HERE, CFG["job_postings"]["families_file"])) as _f:
+    FAM = yaml.safe_load(_f)["families"]
 R = random.Random(CFG["seed"])
 OUT = os.path.join(HERE, CFG["out_dir"])
 AS_OF = dt.date.fromisoformat(CFG["as_of"])
@@ -30,7 +38,7 @@ def rand_date(start, end):
 
 def rand_dt(start, end):
     d = rand_date(start, end)
-    return dt.datetime(d.year, d.month, d.day, R.randint(8, 18), R.choice([0, 15, 30, 45]))
+    return dt.datetime(d.year, d.month, d.day, R.randint(8, 18), R.choice([0, 15, 30, 45]))  # noqa: DTZ001 (fixtures are naive local times)
 
 def business_days_after(d, n):
     while n > 0:
@@ -47,7 +55,8 @@ ID = Ids()
 
 def writer(path, fields):
     full = os.path.join(OUT, path); os.makedirs(os.path.dirname(full), exist_ok=True)
-    f = open(full, "w", newline=""); w = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore"); w.writeheader()
+    f = open(full, "w", newline="")  # noqa: SIM115 (caller closes)
+    w = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore"); w.writeheader()
     return f, w
 
 def dump_csv(path, rows, fields=None):
@@ -62,19 +71,19 @@ def mess(kind, entity, eid, note=""):
     MESS.append({"kind": kind, "entity": entity, "id": eid, "note": note})
 
 # ----------------------------------------------------------------------------- vocab
-FIRST = "James Mary Robert Patricia John Jennifer Michael Linda David Elizabeth William Barbara Richard Susan Joseph Jessica Thomas Sarah Christopher Karen Daniel Lisa Matthew Nancy Anthony Betty Mark Sandra Steven Ashley Andrew Kimberly Paul Emily Joshua Donna Kenneth Michelle Kevin Carol Brian Amanda George Melissa Timothy Deborah Ronald Stephanie Jason Rebecca Edward Sharon Jeffrey Laura Ryan Cynthia Jacob Kathleen Gary Amy Nicholas Angela Eric Shirley Jonathan Anna Stephen Brenda Larry Pamela Justin Emma Scott Nicole Brandon Helen Benjamin Samantha Samuel Katherine Gregory Christine Alexander Debra Priya Wei Aisha Diego Fatima Hiroshi Ingrid Kwame Leila Mateo Noor Olga Rafael Sofia Tariq Yuki Zara Arjun Chloe Dmitri Elena".split()
-LAST = "Smith Johnson Williams Brown Jones Garcia Miller Davis Rodriguez Martinez Hernandez Lopez Gonzalez Wilson Anderson Thomas Taylor Moore Jackson Martin Lee Perez Thompson White Harris Sanchez Clark Ramirez Lewis Robinson Walker Young Allen King Wright Scott Torres Nguyen Hill Flores Green Adams Nelson Baker Hall Rivera Campbell Mitchell Carter Roberts Gomez Phillips Evans Turner Diaz Parker Cruz Edwards Collins Reyes Stewart Morris Morales Murphy Cook Rogers Gutierrez Ortiz Morgan Cooper Peterson Bailey Reed Kelly Howard Ramos Kim Cox Ward Richardson Watson Brooks Chavez Wood James Bennett Gray Mendoza Ruiz Hughes Price Alvarez Castillo Sanders Patel Myers Long Ross Foster Okafor Novak Haddad Lindqvist Tanaka Rossi Schmidt Dubois".split()
-CO_A = "Blue North Bright Clear Silver Summit Harbor Cedar Atlas Nova Beacon Granite Meridian Vantage Prime Apex Crest Ember Lumen Pioneer Orchard Copper Sable Cobalt Juniper Maple Quill Ridge Signal Tidal Vector Willow Arbor Basil Delta Echo Falcon Garnet Halo Iris Kestrel Lark Mosaic Nimbus Onyx Pebble Quartz Raven Solstice Terra Umber Vale Wren Zenith".split()
+FIRST = ["James", "Mary", "Robert", "Patricia", "John", "Jennifer", "Michael", "Linda", "David", "Elizabeth", "William", "Barbara", "Richard", "Susan", "Joseph", "Jessica", "Thomas", "Sarah", "Christopher", "Karen", "Daniel", "Lisa", "Matthew", "Nancy", "Anthony", "Betty", "Mark", "Sandra", "Steven", "Ashley", "Andrew", "Kimberly", "Paul", "Emily", "Joshua", "Donna", "Kenneth", "Michelle", "Kevin", "Carol", "Brian", "Amanda", "George", "Melissa", "Timothy", "Deborah", "Ronald", "Stephanie", "Jason", "Rebecca", "Edward", "Sharon", "Jeffrey", "Laura", "Ryan", "Cynthia", "Jacob", "Kathleen", "Gary", "Amy", "Nicholas", "Angela", "Eric", "Shirley", "Jonathan", "Anna", "Stephen", "Brenda", "Larry", "Pamela", "Justin", "Emma", "Scott", "Nicole", "Brandon", "Helen", "Benjamin", "Samantha", "Samuel", "Katherine", "Gregory", "Christine", "Alexander", "Debra", "Priya", "Wei", "Aisha", "Diego", "Fatima", "Hiroshi", "Ingrid", "Kwame", "Leila", "Mateo", "Noor", "Olga", "Rafael", "Sofia", "Tariq", "Yuki", "Zara", "Arjun", "Chloe", "Dmitri", "Elena"]
+LAST = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson", "Thomas", "Taylor", "Moore", "Jackson", "Martin", "Lee", "Perez", "Thompson", "White", "Harris", "Sanchez", "Clark", "Ramirez", "Lewis", "Robinson", "Walker", "Young", "Allen", "King", "Wright", "Scott", "Torres", "Nguyen", "Hill", "Flores", "Green", "Adams", "Nelson", "Baker", "Hall", "Rivera", "Campbell", "Mitchell", "Carter", "Roberts", "Gomez", "Phillips", "Evans", "Turner", "Diaz", "Parker", "Cruz", "Edwards", "Collins", "Reyes", "Stewart", "Morris", "Morales", "Murphy", "Cook", "Rogers", "Gutierrez", "Ortiz", "Morgan", "Cooper", "Peterson", "Bailey", "Reed", "Kelly", "Howard", "Ramos", "Kim", "Cox", "Ward", "Richardson", "Watson", "Brooks", "Chavez", "Wood", "James", "Bennett", "Gray", "Mendoza", "Ruiz", "Hughes", "Price", "Alvarez", "Castillo", "Sanders", "Patel", "Myers", "Long", "Ross", "Foster", "Okafor", "Novak", "Haddad", "Lindqvist", "Tanaka", "Rossi", "Schmidt", "Dubois"]
+CO_A = ["Blue", "North", "Bright", "Clear", "Silver", "Summit", "Harbor", "Cedar", "Atlas", "Nova", "Beacon", "Granite", "Meridian", "Vantage", "Prime", "Apex", "Crest", "Ember", "Lumen", "Pioneer", "Orchard", "Copper", "Sable", "Cobalt", "Juniper", "Maple", "Quill", "Ridge", "Signal", "Tidal", "Vector", "Willow", "Arbor", "Basil", "Delta", "Echo", "Falcon", "Garnet", "Halo", "Iris", "Kestrel", "Lark", "Mosaic", "Nimbus", "Onyx", "Pebble", "Quartz", "Raven", "Solstice", "Terra", "Umber", "Vale", "Wren", "Zenith"]
 CO_B = {
-    "Technology": "Labs Software Systems Cloud Data AI Networks Digital Robotics Analytics Security Platforms Apps".split(),
-    "Financial Services": "Capital Partners Financial Advisors Holdings Lending Insurance Wealth Payments".split(),
-    "Manufacturing": "Manufacturing Industries Fabrication Works Components Machinery Metals Plastics".split(),
-    "CPG": "Foods Brands Beverages Goods Naturals Snacks Beauty Home".split(),
-    "Hospitality": "Hotels Resorts Hospitality Dining Restaurants Lodging Group".split(),
-    "Healthcare": "Health Clinics Medical Care Therapeutics Wellness Diagnostics".split(),
-    "Retail": "Retail Stores Outfitters Market Supply Trading Co".split(),
-    "Professional Services": "Consulting Advisory Group Associates Solutions Services".split(),
-    "Media": "Media Studios Publishing Entertainment Broadcasting Press".split(),
+    "Technology": ["Labs", "Software", "Systems", "Cloud", "Data", "AI", "Networks", "Digital", "Robotics", "Analytics", "Security", "Platforms", "Apps"],
+    "Financial Services": ["Capital", "Partners", "Financial", "Advisors", "Holdings", "Lending", "Insurance", "Wealth", "Payments"],
+    "Manufacturing": ["Manufacturing", "Industries", "Fabrication", "Works", "Components", "Machinery", "Metals", "Plastics"],
+    "CPG": ["Foods", "Brands", "Beverages", "Goods", "Naturals", "Snacks", "Beauty", "Home"],
+    "Hospitality": ["Hotels", "Resorts", "Hospitality", "Dining", "Restaurants", "Lodging", "Group"],
+    "Healthcare": ["Health", "Clinics", "Medical", "Care", "Therapeutics", "Wellness", "Diagnostics"],
+    "Retail": ["Retail", "Stores", "Outfitters", "Market", "Supply", "Trading", "Co"],
+    "Professional Services": ["Consulting", "Advisory", "Group", "Associates", "Solutions", "Services"],
+    "Media": ["Media", "Studios", "Publishing", "Entertainment", "Broadcasting", "Press"],
 }
 SUFFIX = ["", "", "", " Inc", " Co", " Group", " Corp"]
 TLD = {"US": ".com", "UK": ".co.uk", "Canada": ".ca", "EU": ".io", "APAC": ".com"}
@@ -178,7 +187,6 @@ def gen_contacts(accounts):
     Cc = CFG["contacts"]; M = CFG["mess"]
     contacts, truth_persona, employment, past_links, li = [], [], [], [], []
     customers = [a for a in accounts if a["_type"] in ("customer", "churned")]
-    by_id = {a["Id"]: a for a in accounts}
     for a in accounts:
         n = CFG["accounts"]["contacts_per_band"][a["HeadcountBand__c"]]
         pshare = CFG["persona_contact_share"][a["HeadcountBand__c"]]
@@ -231,7 +239,7 @@ def gen_contacts(accounts):
                     past_links.append({"contact_id": cid, "person_id": pid, "former_account_id": pc["Id"], "former_account_status": pc["Type"], "overlap_start": ov_s.isoformat(), "overlap_end": ov_e.isoformat(), "evidence_level": lvl})
                     c["_past"] = (pc, lvl, start, e2)
                     end = start - dt.timedelta(days=R.randint(10, 120)); continue
-                employment.append({"person_id": pid, "contact_id": cid, "company": f"{R.choice(CO_A)} {R.choice(sum(CO_B.values(), []))}", "company_domain": "", "title": R.choice(TITLES[persona][R.choice(SENIORITY)]), "start": start.isoformat(), "end": end.isoformat(), "is_current": "false"})
+                employment.append({"person_id": pid, "contact_id": cid, "company": f"{R.choice(CO_A)} {R.choice([w for ws in CO_B.values() for w in ws])}", "company_domain": "", "title": R.choice(TITLES[persona][R.choice(SENIORITY)]), "start": start.isoformat(), "end": end.isoformat(), "is_current": "false"})
                 end = start - dt.timedelta(days=R.randint(10, 120))
     # duplicates and orphans
     for c in R.sample(contacts, int(len(contacts) * M["duplicate_contacts"])):
@@ -243,7 +251,7 @@ def gen_contacts(accounts):
 
 # ----------------------------------------------------------------------------- 4. history (2026)
 def gen_history(accounts, contacts):
-    H = CFG["history"]; T = CFG["team"]
+    H = CFG["history"]
     seqs = [{"id": f"seq_{i+1}", "name": n, "steps": 13 if "li" in n else (10 if "call" in n else 5), "email_steps": 5, "call_steps": 5 if "call" in n else 0, "li_steps": 3 if "li" in n else 0} for i, n in enumerate(H["sequences"])]
     eligible = [c for c in contacts if c["_acc"]["_type"] == "prospect" and c["IsDeleted"] == "false" and c["AccountId"] and c["Email"] and c["_estat"] != "none" and "_dup_of" not in c and c["HasOptedOutOfEmail"] == "false"]
     touched = R.sample(eligible, int(len(eligible) * H["touched_share_of_contacts"]))
@@ -348,7 +356,7 @@ def gen_gong(accounts, contacts, touched, opps, meeting_takers):
     with_phone = [c for c in touched if c["Phone"] or c["MobilePhone"]]
     mt_by_opp = {m["opportunity_id"]: m for m in meeting_takers}
     calls, planted = [], []
-    tpath = os.path.join(OUT, "gong", "transcript.jsonl"); os.makedirs(os.path.dirname(tpath), exist_ok=True); tf = open(tpath, "w")
+    tpath = os.path.join(OUT, "gong", "transcript.jsonl"); os.makedirs(os.path.dirname(tpath), exist_ok=True); tf = open(tpath, "w")  # noqa: SIM115 (held open across the whole call loop)
     n_total = G["calls_per_month"] * months
     transcript_from = AS_OF - dt.timedelta(days=30 * G["months_of_transcripts"])
     fams = G["pain_families"]
@@ -374,7 +382,7 @@ def gen_gong(accounts, contacts, touched, opps, meeting_takers):
             for t in range(n_turns):
                 spk = "rep" if t % 2 == 0 else "prospect"
                 if t in inserts:
-                    kind, fam, val, line = inserts[t]
+                    _kind, fam, val, line = inserts[t]
                     turns.append({"t": t, "speaker": spk, "start_s": t * 40, "text": line})
                     planted.append({"call_id": cid, "family": fam, "value": val, "evidence_quote": line, "speaker": spk, "turn": t})
                     continue
@@ -474,7 +482,8 @@ def main():
             "contacts": len(contacts), "contacts_touched_2026": len(touched), "nb_opportunities_2026": len(opps), "mailings": len(mailings), "tasks": len(tasks),
             "gong_calls": len(calls), "gong_transcripts": sum(1 for c in calls if c["has_transcript"] == "true"), "planted_tags": len(planted),
             "bigquery_users": len(users), "searches": len(searches), "datalab_queries": len(lab), "job_postings": len(jobs), "past_customer_links": len(past_links), "mess_rows": len(MESS)}
-    json.dump({k: (dict(v) if isinstance(v, Counter) else v) for k, v in summ.items()}, open(os.path.join(OUT, "truth", "summary.json"), "w"), indent=2)
+    with open(os.path.join(OUT, "truth", "summary.json"), "w") as sf:
+        json.dump({k: (dict(v) if isinstance(v, Counter) else v) for k, v in summ.items()}, sf, indent=2)
     for k, v in summ.items(): print(f"{k:28} {dict(v) if isinstance(v, Counter) else v}")
 
 if __name__ == "__main__":
