@@ -1,0 +1,21 @@
+# PLACEHOLDER. Replace with the public list of roles Pave has benchmark data for.
+# Shape: family -> list of example titles. `covered: true` means "in Pave's dataset".
+families:
+  Software Engineering:   { covered: true,  titles: ["Software Engineer", "Senior Software Engineer", "Staff Engineer", "Engineering Manager", "Backend Engineer", "Frontend Engineer"] }
+  Data:                   { covered: true,  titles: ["Data Scientist", "Data Engineer", "Analytics Engineer", "Machine Learning Engineer"] }
+  Product:                { covered: true,  titles: ["Product Manager", "Senior Product Manager", "Group Product Manager", "Director of Product"] }
+  Design:                 { covered: true,  titles: ["Product Designer", "UX Researcher", "Design Manager"] }
+  Sales:                  { covered: true,  titles: ["Account Executive", "Sales Development Representative", "Sales Manager", "Enterprise Account Executive"] }
+  Customer Success:       { covered: true,  titles: ["Customer Success Manager", "Implementation Specialist", "Support Engineer"] }
+  Marketing:              { covered: true,  titles: ["Product Marketing Manager", "Demand Generation Manager", "Content Marketing Manager"] }
+  Finance:                { covered: true,  titles: ["Financial Analyst", "FP&A Manager", "Controller", "Accountant"] }
+  People:                 { covered: true,  titles: ["People Operations Manager", "HR Business Partner", "Recruiter", "Compensation Analyst", "Total Rewards Manager"] }
+  Operations:             { covered: true,  titles: ["Operations Manager", "Business Operations Analyst", "Chief of Staff"] }
+  Legal:                  { covered: true,  titles: ["Corporate Counsel", "Paralegal"] }
+  IT / Security:          { covered: true,  titles: ["IT Administrator", "Security Engineer", "Systems Administrator"] }
+  # families Pave typically does not cover (placeholders for non-tech industries)
+  Manufacturing Ops:      { covered: false, titles: ["Plant Manager", "Production Supervisor", "Quality Technician", "Machine Operator"] }
+  Hospitality Ops:        { covered: false, titles: ["General Manager - Hotel", "Front Desk Supervisor", "Executive Chef", "Banquet Manager"] }
+  Retail Ops:             { covered: false, titles: ["Store Manager", "Assistant Store Manager", "Merchandiser", "Loss Prevention Lead"] }
+  Clinical:               { covered: false, titles: ["Registered Nurse", "Clinical Research Coordinator", "Medical Assistant"] }
+  Field Sales / Trade:    { covered: false, titles: ["Territory Sales Representative", "Route Sales Driver", "Field Merchandiser"] }

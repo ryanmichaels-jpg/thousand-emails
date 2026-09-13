@@ -1,0 +1,441 @@
+<title>Thousand Emails Architecture</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&display=swap">
+<style>
+  :root {
+    --ground: #0b0b0c;
+    --slide: #000000;
+    --card: #ffffff;
+    --ink: #1a1a1a;
+    --muted: #8a8a90;
+    --blue: #2f6fdb;
+    --blue-dark: #1d4fae;
+    --green: #dff3e3;
+    --green-line: #3f9d5b;
+    --purple: #5952d6;
+    --yellow: #f6f26a;
+  }
+  body { background: var(--ground); color: #e8e8ea; margin: 0; padding-block: 32px; padding-inline: 20px;
+         font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif; }
+  .wrap { max-width: 1240px; margin: 0 auto; display: grid; gap: 56px; }
+  header h1 { font-size: 15px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin: 0 0 6px; }
+  header p { margin: 0; max-width: 62ch; color: #b9b9bf; font-size: 15px; line-height: 1.5; }
+  .slide { background: var(--slide); border-radius: 6px; padding: 34px 40px 40px; box-shadow: 0 0 0 1px #1f1f22; }
+  .slide h2 { color: #fff; text-align: center; font-weight: 800; font-size: clamp(22px, 3.6vw, 44px); line-height: 1.1; margin: 0 0 28px; text-wrap: balance; letter-spacing: -0.01em; }
+  .card { background: var(--card); border-radius: 14px; padding: 14px; overflow-x: auto; }
+  .card svg { display: block; width: 100%; height: auto; min-width: 640px; }
+  .slide figcaption { color: #a9a9af; font-size: 14px; line-height: 1.55; margin: 18px auto 0; max-width: 70ch; }
+  .slide figcaption b { color: #e8e8ea; font-weight: 600; }
+  figure { margin: 0; }
+  .num { color: var(--muted); font-size: 12px; letter-spacing: .1em; text-align: right; margin-top: 10px; }
+  @media (max-width: 600px) { .slide { padding: 22px 16px 26px; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Thousand emails a day · system map</h1>
+    <p>Ramp's three foundation slides plus one of our own, redrawn for a team that starts with Salesforce (enriched), Outreach, Gong, and product usage in BigQuery, with one builder and no warehouse. Same arrows, smaller boxes.</p>
+  </header>
+
+  <section class="slide">
+    <h2>It starts with a consistent data foundation</h2>
+    <figure>
+      <div class="card"><svg id="s1" viewBox="0 0 1520 820" role="img" aria-label="Salesforce, Outreach, BigQuery product usage, enrichment and public web feed a sync job and a webhook handler into one Postgres; dbt models it; a write-back pushes scores and draft fields back to Salesforce and Outreach."></svg></div>
+      <figcaption><b>What changed from Ramp's version.</b> Kafka becomes Outreach webhooks plus scheduled pulls. Snowflake, the online CDP and the vector store collapse into one Postgres with three schemas (raw, models, serving) and pgvector waiting for slide 3. Reverse ETL is a write-back script, and it is not optional: path A sending depends on draft fields landing in Outreach. BigQuery is the one source Ramp doesn't have in this shape; product usage lands nightly and feeds the pulse score and the reactivation play.</figcaption>
+    </figure>
+    <div class="num">1 / 4</div>
+  </section>
+
+  <section class="slide">
+    <h2>Meetings are ingested and resolved to accounts</h2>
+    <figure>
+      <div class="card"><svg id="s2" viewBox="0 0 1400 600" role="img" aria-label="A meeting booked or updated fires a webhook into a meeting resolver that matches attendee domains to accounts, asks an LLM only for ambiguous cases, and writes an outcome event to Postgres joined to the draft that produced it."></svg></div>
+      <figcaption><b>What changed.</b> Same pipeline, one handler instead of a stream. Deterministic domain matching covers most attendees; the LLM is only called for the remainder (personal emails, agencies, subsidiaries). The row it writes is <code>outcome_event</code>, and the join to <code>draft_id</code> is what turns "we sent 1,000" into "and three of them booked." Build it the week sends start.</figcaption>
+    </figure>
+    <div class="num">2 / 4</div>
+  </section>
+
+  <section class="slide">
+    <h2>Plays, product knowledge, and replies become searchable embeddings</h2>
+    <figure>
+      <div class="card"><svg id="s3" viewBox="0 0 1400 800" role="img" aria-label="Email replies and recorded calls arrive by webhook; play library, product marketing and product docs are scraped on a schedule; both are chunked and embedded into pgvector inside the same Postgres."></svg></div>
+      <figcaption><b>What changed.</b> Turbopuffer becomes pgvector in the Postgres from slide 1. This is stage two: stage one is the hand-curated play library (<code>skill.md</code> and <code>examples/</code> per play), which is enough at three plays. Embed only once there are reply threads and call transcripts worth searching; there is nothing to embed on day one.</figcaption>
+    </figure>
+    <div class="num">3 / 4</div>
+  </section>
+
+  <section class="slide">
+    <h2>Call transcripts are tagged, checked, and become facts</h2>
+    <figure>
+      <div class="card"><svg id="s4" viewBox="0 0 1500 820" role="img" aria-label="Gong calls and transcripts are pulled into raw tables, tagged by an LLM against a versioned taxonomy, mechanically checked (evidence quote verbatim, value in vocabulary), then written as call_tag rows, account facts, and embedded chunks in Postgres; a golden set and a weekly human sample feed back into the taxonomy and prompt."></svg></div>
+      <figcaption><b>The part Ramp's slides don't show.</b> Tagging is two loops, not one job. The fast loop runs on every call: pull, tag against a closed vocabulary, check the output mechanically, store with a <code>tagger_version</code>. The slow loop keeps it honest: a hand-tagged golden set that every taxonomy, prompt or model change is scored against, plus a small weekly human sample whose corrections become new golden cases. Tags land in <code>call_tag</code>; the ones that describe an account (pain, competitor, trigger) are also written to <code>account_fact</code> with <code>source = gong</code>, which is how call intelligence reaches the draft engine without the engine ever reading a transcript.</figcaption>
+    </figure>
+    <div class="num">4 / 4</div>
+  </section>
+</div>
+
+<script>
+(function () {
+  const NS = 'http://www.w3.org/2000/svg';
+  const FONT = "'Kalam', 'Comic Sans MS', cursive";
+  const INK = '#1a1a1a';
+
+  function el(tag, attrs, parent) {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function text(g, x, y, str, opts = {}) {
+    const t = el('text', { x, y, 'text-anchor': opts.anchor || 'middle', 'font-family': FONT,
+      'font-size': opts.size || 22, fill: opts.fill || INK, 'font-weight': opts.weight || 400 }, g);
+    const lines = String(str).split('\n');
+    lines.forEach((ln, i) => {
+      const ts = el('tspan', { x, dy: i === 0 ? 0 : (opts.size || 22) * 1.2 }, t);
+      ts.textContent = ln;
+    });
+    return t;
+  }
+  function defs(svg) {
+    const d = el('defs', {}, svg);
+    const f = el('filter', { id: 'rough', filterUnits: 'userSpaceOnUse', x: '-100', y: '-100', width: '1800', height: '1200' }, d);
+    el('feTurbulence', { type: 'fractalNoise', baseFrequency: '0.018', numOctaves: '3', seed: '7', result: 'n' }, f);
+    el('feDisplacementMap', { in: 'SourceGraphic', in2: 'n', scale: '3', xChannelSelector: 'R', yChannelSelector: 'G' }, f);
+    const m = el('marker', { id: 'arr', viewBox: '0 0 12 12', refX: '10', refY: '6', markerWidth: '9', markerHeight: '9', orient: 'auto-start-reverse' }, d);
+    el('path', { d: 'M1 1 L11 6 L1 11', fill: 'none', stroke: INK, 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, m);
+    const hatch = el('pattern', { id: 'hatch', width: 8, height: 8, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, d);
+    el('rect', { width: 8, height: 8, fill: '#ffffff' }, hatch);
+    el('line', { x1: 0, y1: 0, x2: 0, y2: 8, stroke: '#3f9d5b', 'stroke-width': 1.4, opacity: .6 }, hatch);
+    const cloudHatch = el('pattern', { id: 'sfhatch', width: 6, height: 6, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, d);
+    el('rect', { width: 6, height: 6, fill: '#ffffff' }, cloudHatch);
+    el('line', { x1: 0, y1: 0, x2: 0, y2: 6, stroke: '#7ab3e8', 'stroke-width': 1.2, opacity: .7 }, cloudHatch);
+  }
+  const stroke = { fill: 'none', stroke: INK, 'stroke-width': 2.4, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' };
+
+  // shapes -------------------------------------------------------------
+  function box(g, x, y, w, h, label, o = {}) {
+    el('rect', Object.assign({ x, y, width: w, height: h, rx: o.rx ?? 18, filter: 'url(#rough)' }, stroke,
+      { fill: o.fill || '#fff', 'stroke-dasharray': o.dashed ? '9 8' : 'none', 'stroke-width': o.thin ? 1.8 : 2.4 }), g);
+    if (label) text(g, x + w / 2, y + h / 2 + (o.dy ?? 8), label, { size: o.size || 22, weight: o.weight || 400 });
+    return { x, y, w, h, cx: x + w / 2, cy: y + h / 2, r: x + w, b: y + h };
+  }
+  function groupLabel(g, x, y, str) { text(g, x, y, str, { size: 18, anchor: 'start' }); }
+
+  function cyl(g, x, y, w, h, label, o = {}) {
+    const ry = w * 0.16, fill = o.fill || '#2f6fdb', line = o.line || '#1d4fae';
+    const dash = o.dashed ? '9 8' : 'none';
+    const gg = el('g', { filter: 'url(#rough)' }, g);
+    el('path', { d: `M${x} ${y + ry} L${x} ${y + h - ry} A${w / 2} ${ry} 0 0 0 ${x + w} ${y + h - ry} L${x + w} ${y + ry}`, fill, stroke: line, 'stroke-width': 2.4, 'stroke-dasharray': dash }, gg);
+    const bands = o.bands ?? 2;
+    for (let i = 1; i <= bands; i++) {
+      const yy = y + ry + ((h - 2 * ry) / (bands + 1)) * i;
+      el('path', { d: `M${x} ${yy} A${w / 2} ${ry} 0 0 0 ${x + w} ${yy}`, fill: 'none', stroke: line, 'stroke-width': 2, 'stroke-dasharray': dash }, gg);
+      el('circle', { cx: x + w * 0.8, cy: yy + ry * 0.55, r: w * 0.05, fill: '#fff' }, gg);
+    }
+    el('circle', { cx: x + w * 0.8, cy: y + h - ry * 0.6 - w * 0.02, r: w * 0.05, fill: '#fff' }, gg);
+    el('ellipse', { cx: x + w / 2, cy: y + ry, rx: w / 2, ry, fill: o.dashed ? '#fff' : '#eaf1fc', stroke: line, 'stroke-width': 2.4, 'stroke-dasharray': dash }, gg);
+    if (label) text(g, x + w / 2, y + h + 34, label, { size: o.size || 22 });
+    return { x, y, w, h, cx: x + w / 2, cy: y + h / 2, r: x + w, b: y + h };
+  }
+
+  function pipe(g, x, y, w, h, label) { // Kafka-style horizontal cylinder
+    const rx = h * 0.22;
+    const gg = el('g', { filter: 'url(#rough)' }, g);
+    el('path', { d: `M${x + rx} ${y} L${x + w - rx} ${y} A${rx} ${h / 2} 0 0 1 ${x + w - rx} ${y + h} L${x + rx} ${y + h} A${rx} ${h / 2} 0 0 1 ${x + rx} ${y}`, fill: 'url(#hatch)', stroke: '#2f7d47', 'stroke-width': 2.2 }, gg);
+    el('path', { d: `M${x + rx * 2.2} ${y} A${rx} ${h / 2} 0 0 0 ${x + rx * 2.2} ${y + h}`, fill: 'none', stroke: '#2f7d47', 'stroke-width': 1.6, opacity: .7 }, gg);
+    el('ellipse', { cx: x + w - rx, cy: y + h / 2, rx, ry: h / 2, fill: '#eef8f0', stroke: '#2f7d47', 'stroke-width': 2.2 }, gg);
+    text(g, x + w / 2 - rx * 0.4, y + h / 2 + 8, label, { size: 22 });
+    return { x, y, w, h, cx: x + w / 2, cy: y + h / 2, r: x + w, b: y + h };
+  }
+
+  function cloud(g, x, y, w, h, label, o = {}) {
+    // lumpy cloud built from arcs on a rounded base
+    const gg = el('g', { filter: 'url(#rough)' }, g);
+    const d = [
+      `M${x + w * 0.18} ${y + h * 0.85}`,
+      `C${x - w * 0.02} ${y + h * 0.85} ${x - w * 0.02} ${y + h * 0.45} ${x + w * 0.2} ${y + h * 0.45}`,
+      `C${x + w * 0.18} ${y + h * 0.1} ${x + w * 0.52} ${y + h * 0.05} ${x + w * 0.55} ${y + h * 0.33}`,
+      `C${x + w * 0.7} ${y + h * 0.1} ${x + w * 0.95} ${y + h * 0.25} ${x + w * 0.88} ${y + h * 0.5}`,
+      `C${x + w * 1.05} ${y + h * 0.55} ${x + w * 1.02} ${y + h * 0.85} ${x + w * 0.84} ${y + h * 0.85}`, 'Z'].join(' ');
+    el('path', { d, fill: o.fill || '#fff', stroke: o.line || INK, 'stroke-width': 2.4, 'stroke-linejoin': 'round', 'stroke-dasharray': o.dashed ? '9 8' : 'none' }, gg);
+    text(g, x + w / 2, y + h * 0.7, label, { size: o.size || 22, fill: o.text || INK, weight: o.weight || 400 });
+    return { x, y, w, h, cx: x + w / 2, cy: y + h / 2, r: x + w, b: y + h };
+  }
+
+  function arrow(g, x1, y1, x2, y2, label, o = {}) {
+    const mid = o.mid ?? 0.5;
+    let d;
+    if (o.via) { // orthogonal via x
+      d = `M${x1} ${y1} L${o.via} ${y1} L${o.via} ${y2} L${x2} ${y2}`;
+    } else if (o.viaY) {
+      d = `M${x1} ${y1} L${x1} ${o.viaY} L${x2} ${o.viaY} L${x2} ${y2}`;
+    } else d = `M${x1} ${y1} L${x2} ${y2}`;
+    el('path', Object.assign({ d, filter: 'url(#rough)', 'marker-end': 'url(#arr)', 'marker-start': o.both ? 'url(#arr)' : 'none', 'stroke-dasharray': o.dashed ? '8 7' : 'none' }, stroke, { 'stroke-width': 2.2 }), g);
+    if (label) {
+      const lx = o.lx ?? (x1 + (x2 - x1) * mid), ly = o.ly ?? (y1 + (y2 - y1) * mid - 10);
+      text(g, lx, ly, label, { size: 16, fill: '#444' });
+    }
+  }
+
+  // small icons (drawn simply, Excalidraw-style)
+  function iconEmail(g, x, y) { el('rect', Object.assign({ x, y, width: 44, height: 30, rx: 3, filter: 'url(#rough)' }, stroke, { fill: '#fff' }), g); el('path', Object.assign({ d: `M${x} ${y} L${x + 22} ${y + 18} L${x + 44} ${y}`, filter: 'url(#rough)' }, stroke), g); }
+  function iconCal(g, x, y) { el('rect', Object.assign({ x, y, width: 44, height: 40, rx: 3, filter: 'url(#rough)' }, stroke, { fill: '#fff' }), g); el('rect', { x, y, width: 44, height: 10, fill: INK }, g); for (let r = 0; r < 3; r++) for (let c = 0; c < 5; c++) el('rect', { x: x + 4 + c * 8, y: y + 14 + r * 8, width: 5, height: 5, fill: '#bbb' }, g); }
+  function iconPhone(g, x, y) { el('rect', Object.assign({ x, y, width: 26, height: 44, rx: 5, filter: 'url(#rough)' }, stroke, { fill: '#fff' }), g); el('circle', { cx: x + 13, cy: y + 38, r: 2.5, fill: INK }, g); el('rect', { x: x + 4, y: y + 6, width: 18, height: 26, fill: '#eee' }, g); }
+  function iconChart(g, x, y) { // product usage: little bar chart
+    el('rect', Object.assign({ x, y, width: 46, height: 40, rx: 3, filter: 'url(#rough)' }, stroke, { fill: '#fff' }), g);
+    [10, 22, 16, 30].forEach((h, i) => el('rect', { x: x + 6 + i * 10, y: y + 36 - h, width: 6, height: h, fill: '#2f6fdb' }, g));
+  }
+  function iconDollar(g, x, y) { text(g, x + 22, y + 30, '$$$', { size: 30, weight: 700 }); }
+  function iconPerson(g, x, y, n = 1) { for (let i = 0; i < n; i++) { const ox = x + i * 16; el('circle', Object.assign({ cx: ox + 14, cy: y + 10, r: 8, filter: 'url(#rough)' }, stroke, { fill: '#e6f4ea' }), g); el('path', Object.assign({ d: `M${ox + 2} ${y + 40} C${ox + 2} ${y + 22} ${ox + 26} ${y + 22} ${ox + 26} ${y + 40} Z`, filter: 'url(#rough)' }, stroke, { fill: '#e6f4ea' }), g); } }
+  function iconDocs(g, x, y) { for (let i = 2; i >= 0; i--) { el('rect', Object.assign({ x: x + i * 6, y: y - i * 6, width: 32, height: 40, rx: 2, filter: 'url(#rough)' }, stroke, { fill: '#fff', 'stroke-width': 1.8 }), g); } for (let l = 0; l < 4; l++) el('line', { x1: x + 5, y1: y + 8 + l * 8, x2: x + 26, y2: y + 8 + l * 8, stroke: '#999', 'stroke-width': 1.6 }, g); }
+  function iconBriefcase(g, x, y) { el('rect', Object.assign({ x, y: y + 8, width: 44, height: 30, rx: 4, filter: 'url(#rough)' }, stroke, { fill: '#fff' }), g); el('rect', Object.assign({ x: x + 14, y, width: 16, height: 10, rx: 2, filter: 'url(#rough)' }, stroke, { fill: '#fff' }), g); el('line', Object.assign({ x1: x, y1: y + 20, x2: x + 44, y2: y + 20 }, stroke), g); }
+  function iconNews(g, x, y) { el('rect', Object.assign({ x, y, width: 44, height: 36, rx: 2, filter: 'url(#rough)' }, stroke, { fill: '#fff' }), g); el('rect', { x: x + 5, y: y + 5, width: 16, height: 12, fill: '#ccc' }, g); for (let l = 0; l < 3; l++) el('line', { x1: x + 25, y1: y + 8 + l * 5, x2: x + 39, y2: y + 8 + l * 5, stroke: '#999', 'stroke-width': 1.6 }, g); for (let l = 0; l < 2; l++) el('line', { x1: x + 5, y1: y + 23 + l * 5, x2: x + 39, y2: y + 23 + l * 5, stroke: '#999', 'stroke-width': 1.6 }, g); }
+  function iconGlobe(g, x, y) { el('circle', Object.assign({ cx: x + 20, cy: y + 20, r: 18, filter: 'url(#rough)' }, stroke, { fill: '#fff' }), g); el('ellipse', Object.assign({ cx: x + 20, cy: y + 20, rx: 8, ry: 18 }, stroke, { 'stroke-width': 1.6 }), g); el('line', Object.assign({ x1: x + 2, y1: y + 20, x2: x + 38, y2: y + 20 }, stroke, { 'stroke-width': 1.6 }), g); }
+  function labeled(g, x, y, str) { text(g, x, y, str, { size: 16 }); }
+
+  function bigquery(g, x, y, w, h, label) { // blue hexagon, product usage
+    const gg = el('g', { filter: 'url(#rough)' }, g);
+    const cx = x + w / 2, cy = y + h / 2, r = Math.min(w, h) / 2;
+    const pts = [];
+    for (let i = 0; i < 6; i++) { const a = Math.PI / 3 * i + Math.PI / 6; pts.push(`${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`); }
+    el('polygon', { points: pts.join(' '), fill: '#e8f0fe', stroke: '#4285f4', 'stroke-width': 2.6, 'stroke-linejoin': 'round' }, gg);
+    el('circle', { cx: cx - 4, cy: cy - 4, r: r * 0.36, fill: '#fff', stroke: '#4285f4', 'stroke-width': 2.4 }, gg);
+    el('line', { x1: cx + 6, y1: cy + 6, x2: cx + r * 0.62, y2: cy + r * 0.62, stroke: '#4285f4', 'stroke-width': 4, 'stroke-linecap': 'round' }, gg);
+    text(g, cx, y + h + 26, label, { size: 20, fill: '#3367d6' });
+  }
+  function outreach(g, x, y, s) {
+    el('rect', { x, y, width: s, height: s, rx: 6, fill: '#5952d6', filter: 'url(#rough)' }, g);
+    text(g, x + s / 2, y + s / 2 + 12, 'O', { size: s * 0.54, fill: '#fff', weight: 700 });
+    text(g, x + s / 2, y + s + 26, 'Outreach', { size: 20, fill: '#4a44b8' });
+  }
+  function gong(g, x, y, s) {
+    el('rect', { x, y, width: s, height: s, rx: 6, fill: '#8039df', filter: 'url(#rough)' }, g);
+    text(g, x + s / 2, y + s / 2 + 12, 'G', { size: s * 0.54, fill: '#fff', weight: 700 });
+    text(g, x + s / 2, y + s + 26, 'Gong', { size: 20, fill: '#6a2fc0' });
+    text(g, x + s / 2, y + s + 46, 'call transcripts', { size: 15, fill: '#666' });
+  }
+
+  // SLIDE 1 -----------------------------------------------------------------
+  (function () {
+    const svg = document.getElementById('s1'); defs(svg);
+    const g = el('g', {}, svg);
+
+    // data sources container
+    const src = box(g, 50, 60, 590, 700, null, { rx: 22 });
+    text(g, src.cx, 50, 'Data Sources', { size: 22 });
+
+    cloud(g, 80, 82, 190, 100, 'Salesforce', { fill: 'url(#sfhatch)', line: '#4a90d9', text: '#2b7bd0', size: 26, weight: 700 });
+    text(g, 175, 200, 'enriched', { size: 15, fill: '#666' });
+    outreach(g, 135, 218, 80);
+    bigquery(g, 120, 335, 110, 100, 'BigQuery');
+    text(g, 175, 478, 'product usage', { size: 15, fill: '#666' });
+    gong(g, 135, 500, 80);
+    cloud(g, 80, 625, 190, 85, 'Enrichment', { size: 22 });
+    text(g, 175, 728, 'vendor', { size: 15, fill: '#666' });
+
+    // interactions group
+    const inter = box(g, 330, 95, 280, 300, null, { dashed: true, rx: 14, thin: true });
+    text(g, inter.cx, 86, 'Interactions', { size: 18 });
+    iconEmail(g, 372, 135); labeled(g, 394, 195, 'Email');
+    iconCal(g, 500, 130); labeled(g, 522, 195, 'Meetings');
+    iconPhone(g, 382, 220); labeled(g, 394, 290, 'Call');
+    iconChart(g, 500, 222); labeled(g, 522, 290, 'Product usage');
+    iconGlobe(g, 434, 312); labeled(g, 454, 372, 'Page view (later)');
+
+    // signals group
+    const sig = box(g, 330, 430, 280, 300, null, { dashed: true, rx: 14, thin: true });
+    text(g, sig.cx, 421, 'Signals', { size: 18 });
+    iconDollar(g, 372, 465); labeled(g, 394, 530, 'Fundraising');
+    iconPerson(g, 508, 462); labeled(g, 522, 530, 'New hire');
+    iconBriefcase(g, 372, 560); labeled(g, 394, 630, 'Job posts');
+    iconNews(g, 500, 565); labeled(g, 522, 630, 'News');
+    labeled(g, 470, 700, 'from the enrichment vendor + public web');
+
+    // middle pipeline
+    const pipeBox = box(g, 860, 120, 270, 520, null, { rx: 20 });
+    const sync = box(g, 885, 150, 220, 90, 'Sync job', { rx: 14 });
+    const ing = box(g, 885, 300, 220, 90, 'Ingestion\nhandler', { rx: 14, dy: -4, size: 21 });
+    const wb = box(g, 885, 480, 220, 90, 'Write-back', { rx: 14 });
+    text(g, wb.cx, 590, '(reverse ETL)', { size: 15, fill: '#666' });
+
+    const hook = pipe(g, 670, 315, 170, 60, 'Webhooks');
+
+    arrow(g, src.r, 195, sync.x, 195, 'scheduled pull, every 15–60 min', { lx: 750, ly: 178 });
+    arrow(g, src.r, 345, hook.x, 345);
+    arrow(g, hook.r, 345, ing.x, 345);
+    text(g, 755, 402, 'Outreach: reply,\nbounce, state change', { size: 14, fill: '#555' });
+    arrow(g, src.r, 470, sync.x - 20, 470, null);
+    el('path', Object.assign({ d: `M${sync.x - 20} 470 L${sync.x - 20} 240`, filter: 'url(#rough)' }, stroke, { 'stroke-width': 2.2 }), g);
+    text(g, 750, 455, 'nightly export', { size: 16, fill: '#444' });
+    text(g, 750, 495, 'BigQuery → Postgres', { size: 14, fill: '#555' });
+    // corner fix: connect 470 line to sync via the vertical (drawn above); add arrowhead into sync
+    arrow(g, sync.x - 20, 210, sync.x, 210);
+
+    // write-back to sources
+    arrow(g, wb.x, 548, src.r, 548, 'scores, exclusions, draft fields', { lx: 750, ly: 536 });
+    text(g, 750, 576, 'to Salesforce fields and\nOutreach custom fields', { size: 14, fill: '#555' });
+
+    // postgres
+    const pg = cyl(g, 1190, 170, 150, 230, null, { bands: 2 });
+    text(g, 1265, 126, 'Postgres', { size: 24 });
+    text(g, 1265, 150, 'raw · models · serving', { size: 14, fill: '#555' });
+    const pv = cyl(g, 1385, 230, 100, 120, 'pgvector', { dashed: true, fill: '#fff', line: '#1d4fae', bands: 1, size: 19 });
+    text(g, 1435, 406, 'same DB,\nslide 3', { size: 14, fill: '#555' });
+    el('path', { d: 'M1342 300 L1383 300', stroke: '#1d4fae', 'stroke-width': 2, 'stroke-dasharray': '6 6', filter: 'url(#rough)' }, g);
+
+    arrow(g, sync.r, 195, pg.x, 240);
+    arrow(g, ing.r, 345, pg.x, 320);
+    arrow(g, pg.x, 385, wb.r, 548, null, { via: 1165 });
+    text(g, 1172, 470, 'reads', { size: 15, fill: '#555', anchor: 'start' });
+
+    // dbt
+    const dbt = box(g, 885, 690, 220, 90, null, { rx: 14 });
+    text(g, dbt.cx + 10, dbt.cy + 12, 'dbt', { size: 40, weight: 700, fill: '#2f2f2f' });
+    el('path', { d: `M${dbt.x + 30} ${dbt.cy - 18} l14 18 l-14 18 M${dbt.x + 60} ${dbt.cy - 18} l-14 18 l14 18`, fill: 'none', stroke: '#ff694a', 'stroke-width': 3, 'stroke-linecap': 'round', filter: 'url(#rough)' }, g);
+    text(g, dbt.cx, dbt.b + 28, 'tests · docs · raw → models → serving', { size: 14, fill: '#555' });
+    arrow(g, dbt.r, dbt.cy, pg.cx, pg.b + 6, null, { both: true, via: pg.cx });
+    text(g, pg.cx + 14, pg.b + 90, 'raw → models', { size: 15, fill: '#555', anchor: 'start' });
+  })();
+
+  // SLIDE 2 -----------------------------------------------------------------
+  (function () {
+    const svg = document.getElementById('s2'); defs(svg);
+    const g = el('g', {}, svg);
+
+    iconCal(g, 110, 180);
+    el('rect', Object.assign({ x: 100, y: 170, width: 64, height: 60, rx: 4, filter: 'url(#rough)' }, stroke, { fill: 'none', 'stroke-width': 1.6 }), g);
+    text(g, 132, 270, 'Meeting booked\nor updated', { size: 22 });
+    text(g, 132, 330, 'booking tool / Google Calendar', { size: 14, fill: '#555' });
+
+    const hook = pipe(g, 300, 170, 170, 60, 'Webhook');
+    arrow(g, 175, 200, hook.x, 200);
+
+    const res = box(g, 600, 140, 320, 120, 'Meeting\nresolver', { rx: 18, dy: -4, size: 24 });
+    arrow(g, hook.r, 200, res.x, 200);
+    text(g, res.cx, res.b + 30, 'attendee email domain → account (deterministic)', { size: 15, fill: '#444' });
+    text(g, res.cx, res.b + 52, 'contact match → contact_id → draft_id if one exists', { size: 15, fill: '#444' });
+
+    const llm = cloud(g, 1060, 120, 240, 150, 'LLM', { size: 28 });
+    arrow(g, llm.x + 10, 200, res.r, 200, 'only the ambiguous', { lx: 990, ly: 182 });
+    text(g, 990, 224, 'personal email, agency,\nsubsidiary, ~10%', { size: 14, fill: '#555' });
+
+    const pg = cyl(g, 690, 370, 140, 180, 'Postgres', { bands: 2 });
+    arrow(g, res.cx, res.b + 62, res.cx, pg.y - 6, null, { both: true });
+    text(g, 880, 440, 'outcome_event(', { size: 17, anchor: 'start', fill: '#333' });
+    text(g, 900, 464, 'event = meeting,', { size: 16, anchor: 'start', fill: '#333' });
+    text(g, 900, 486, 'account_id, contact_id,', { size: 16, anchor: 'start', fill: '#333' });
+    text(g, 900, 508, 'draft_id, observed_at )', { size: 16, anchor: 'start', fill: '#333' });
+    text(g, 1140, 560, 'this row is the decision-to-outcome join', { size: 15, fill: '#555' });
+  })();
+
+  // SLIDE 3 -----------------------------------------------------------------
+  (function () {
+    const svg = document.getElementById('s3'); defs(svg);
+    const g = el('g', {}, svg);
+
+    const raw = box(g, 60, 70, 380, 690, null, { rx: 22 });
+    text(g, raw.cx, 60, 'Raw Unstructured Context', { size: 22 });
+
+    const a = box(g, 90, 110, 320, 220, null, { rx: 16, thin: true });
+    text(g, a.cx, 100, 'Interactions', { size: 17 });
+    iconEmail(g, 228, 135); text(g, 250, 205, 'Email replies', { size: 19 });
+    iconPhone(g, 237, 225); text(g, 250, 305, 'Gong transcripts', { size: 19 });
+    text(g, 250, 325, 'tagged first (slide 4), then embedded', { size: 13, fill: '#555' });
+
+    const b = box(g, 90, 360, 320, 380, null, { rx: 16, thin: true });
+    text(g, b.cx, 350, 'Knowledge', { size: 17 });
+    iconDocs(g, 232, 400); text(g, 250, 470, 'Play library', { size: 19 });
+    text(g, 250, 492, 'skill.md · examples/ per play', { size: 14, fill: '#555' });
+    iconDocs(g, 232, 525); text(g, 250, 595, 'Product marketing', { size: 19 });
+    iconDocs(g, 232, 640); text(g, 250, 710, 'Product docs', { size: 19 });
+
+    const hook = pipe(g, 520, 190, 190, 62, 'Webhooks');
+    arrow(g, a.r + 30, 221, hook.x, 221);
+    text(g, 615, 275, 'Outreach reply · Gong call ready', { size: 14, fill: '#555' });
+
+    const job = box(g, 540, 560, 190, 130, null, { rx: 16 });
+    text(g, job.cx, 545, 'scheduled job', { size: 17 });
+    box(g, 565, 590, 140, 70, 'Scrape', { rx: 12 });
+    arrow(g, b.r + 30, 625, job.x, 625);
+
+    const proc = box(g, 790, 350, 360, 130, null, { rx: 18 });
+    box(g, 815, 375, 130, 80, 'Chunk', { rx: 12 });
+    box(g, 995, 375, 130, 80, 'Embed', { rx: 12 });
+    arrow(g, 945, 415, 995, 415);
+    arrow(g, hook.r, 221, proc.x, 380);
+    arrow(g, job.r, 625, proc.x, 450);
+
+    const pv = cyl(g, 1220, 330, 130, 170, 'pgvector', { bands: 2 });
+    text(g, 1285, 550, '(in the same Postgres)', { size: 15, fill: '#555' });
+    arrow(g, proc.r, 415, pv.x - 4, 415);
+
+    // stage note
+    box(g, 790, 600, 560, 130, null, { rx: 14, dashed: true, thin: true });
+    text(g, 810, 635, 'Stage 1 (now): the play library is hand-curated, no embeddings.', { size: 16, anchor: 'start', fill: '#333' });
+    text(g, 810, 665, 'Stage 2 (this slide): embed once reply threads and transcripts exist.', { size: 16, anchor: 'start', fill: '#333' });
+    text(g, 810, 695, 'The draft engine reads both: facts from Postgres, context from pgvector.', { size: 16, anchor: 'start', fill: '#333' });
+  })();
+
+  // SLIDE 4 -----------------------------------------------------------------
+  (function () {
+    const svg = document.getElementById('s4'); defs(svg);
+    const g = el('g', {}, svg);
+
+    gong(g, 70, 150, 90);
+
+    const pull = box(g, 250, 140, 190, 110, 'Pull', { rx: 14, dy: -6, size: 24 });
+    text(g, pull.cx, pull.cy + 26, 'calls + transcripts', { size: 14, fill: '#555' });
+    text(g, pull.cx, pull.b + 26, 'hourly · batch backfill', { size: 14, fill: '#555' });
+    text(g, pull.cx, pull.b + 46, 'party ids → account, contact', { size: 14, fill: '#555' });
+    arrow(g, 165, 195, pull.x, 195, 'API', { lx: 207, ly: 182 });
+
+    // fast loop
+    const tagger = box(g, 500, 70, 600, 330, null, { rx: 20 });
+    text(g, tagger.cx, 60, 'Tagger  (fast loop: every call)', { size: 20 });
+    const tag = box(g, 540, 140, 200, 110, 'Tag', { rx: 14, dy: -6, size: 24 });
+    text(g, tag.cx, tag.cy + 26, 'LLM, structured output', { size: 14, fill: '#555' });
+    const chk = box(g, 830, 140, 230, 110, 'Check', { rx: 14, dy: -6, size: 24 });
+    text(g, chk.cx, chk.cy + 26, 'mechanical, no model', { size: 14, fill: '#555' });
+    arrow(g, pull.r, 195, tag.x, 195);
+    arrow(g, tag.r, 195, chk.x, 195);
+    // taxonomy doc feeding tag
+    iconDocs(g, 560, 300); text(g, 690, 315, 'taxonomy.yaml', { size: 17, anchor: 'start' });
+    text(g, 690, 337, 'closed vocab per family,', { size: 13, fill: '#555', anchor: 'start' });
+    text(g, 690, 355, 'versioned; prompt cached', { size: 13, fill: '#555', anchor: 'start' });
+    arrow(g, 600, 290, 620, tag.b + 4);
+    // check rules
+    text(g, chk.x, 290, '✓ evidence quote is verbatim in transcript', { size: 14, anchor: 'start', fill: '#333' });
+    text(g, chk.x, 312, '✓ value is in the vocabulary', { size: 14, anchor: 'start', fill: '#333' });
+    text(g, chk.x, 334, '✓ schema valid · confidence present', { size: 14, anchor: 'start', fill: '#333' });
+    text(g, chk.x, 362, '✗ → retry once, then quarantine', { size: 14, anchor: 'start', fill: '#a33' });
+
+    // postgres
+    const pg = cyl(g, 1200, 110, 150, 200, null, { bands: 2 });
+    text(g, pg.cx, 96, 'Postgres', { size: 24 });
+    arrow(g, chk.r, 195, pg.x, 195, 'tagger_version', { lx: 1130, ly: 180 });
+    text(g, 1150, 370, 'call_tag(call_id, family, value,', { size: 15, anchor: 'start', fill: '#333' });
+    text(g, 1170, 390, 'evidence, speaker, ts, confidence)', { size: 15, anchor: 'start', fill: '#333' });
+    text(g, 1150, 418, 'account_fact(… source = gong, as_of)', { size: 15, anchor: 'start', fill: '#333' });
+    text(g, 1150, 446, 'pgvector chunks  → slide 3', { size: 15, anchor: 'start', fill: '#333' });
+    text(g, 1150, 474, 'raw transcript stays in raw.*', { size: 15, anchor: 'start', fill: '#333' });
+
+    // slow loop
+    const qc = box(g, 500, 540, 860, 240, null, { rx: 20, dashed: true });
+    text(g, 530, 530, 'Quality loop  (slow loop: weekly, and on every change)', { size: 20, anchor: 'start' });
+    const gold = box(g, 530, 590, 240, 110, 'Golden set', { rx: 14, dy: -6, size: 22 });
+    text(g, gold.cx, gold.cy + 24, '100 hand-tagged calls, stratified', { size: 13, fill: '#555' });
+    text(g, gold.cx, gold.cy + 42, '2 humans; agreement measured first', { size: 13, fill: '#555' });
+    const ev = box(g, 810, 590, 220, 110, 'Eval', { rx: 14, dy: -6, size: 22 });
+    text(g, ev.cx, ev.cy + 24, 'precision / recall per family', { size: 13, fill: '#555' });
+    text(g, ev.cx, ev.cy + 42, 'blocks regressions', { size: 13, fill: '#555' });
+    const smp = box(g, 1080, 590, 250, 110, 'Weekly sample', { rx: 14, dy: -6, size: 22 });
+    text(g, smp.cx, smp.cy + 24, '3% of calls + low-confidence', { size: 13, fill: '#555' });
+    text(g, smp.cx, smp.cy + 42, 'human accept / fix in a queue', { size: 13, fill: '#555' });
+
+    arrow(g, gold.r, 645, ev.x, 645);
+    arrow(g, ev.cx, ev.y, ev.cx, tagger.b + 4, 'gates taxonomy, prompt\nand model changes', { lx: 1045, ly: 462 });
+    el('path', Object.assign({ d: `M${pg.r} 250 L1440 250 L1440 645 L${smp.r + 4} 645`, filter: 'url(#rough)', 'marker-end': 'url(#arr)', 'stroke-dasharray': '8 7' }, stroke, { 'stroke-width': 2.2 }), g);
+    text(g, 1470, 450, 'sample', { size: 15, fill: '#555' });
+    arrow(g, smp.cx, smp.b, gold.cx, gold.b, 'fixes become new golden cases', { viaY: 760, lx: 930, ly: 752 });
+  })();
+})();
+</script>

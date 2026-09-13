@@ -1,0 +1,18 @@
+# Enforced in the sender (path A and B) before any send. Not advisory.
+version: 1
+per_mailbox_daily_cap: 40
+per_domain_daily_cap: 120
+per_rep_daily_cap: 1000
+per_account_weekly_cap: 6          # sends to all contacts at one account per week
+per_contact_min_gap_hours: 40
+warmup_days_before_cold: 14
+pull_mailbox_when: { bounce_rate_gt: 0.02, complaint_rate_gt: 0.003 }
+required_dns: [spf, dkim, dmarc]
+required_headers: [List-Unsubscribe, List-Unsubscribe-Post]
+custom_tracking_domain: true
+content_rules:
+  - no claims about the prospect's own compensation data
+  - cite only facts with as_of within the play's freshness window
+  - no mention of product usage attributable to a specific person
+  - unsubscribe language present on every first touch
+suppression_sync_minutes: 15

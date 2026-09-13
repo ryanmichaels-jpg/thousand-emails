@@ -1,0 +1,11 @@
+.env
+seed/fixtures/
+__pycache__/
+*.pyc
+.venv/
+node_modules/
+web/dist/
+.pytest_cache/
+.ruff_cache/
+db/dbt/target/
+db/dbt/logs/

@@ -1,0 +1,15 @@
+# Which implementation each adapter uses. fixture = seed/fixtures/, real = vendor API (needs .env).
+# This file is the "plug it in" switch. Flip a source to real, add its credentials to .env, run make sync.
+sources:
+  salesforce: { mode: fixture }   # real options: { domain: pave.my.salesforce.com }
+  outreach:   { mode: fixture }
+  gong:       { mode: fixture }
+  bigquery:   { mode: fixture }   # real options: { project: ..., dataset: ... }
+  enrichment: { mode: fixture }   # real options: { vendor: apollo|zoominfo|clay|pdl }
+  calendar:   { mode: fixture }
+  sender:     { mode: fixture }   # fixture = StubSender; real = OutreachSender (path A) or PoolSender (path B)
+llm:
+  provider: anthropic
+  draft_model: claude-sonnet-4-5        # cheap enough for 10k drafts/day; pin and record in draft.model
+  tag_model: claude-sonnet-4-5
+  embed_dim: 1024

@@ -1,0 +1,24 @@
+# The one cadence, three tiers. Built centrally in Outreach; reps enroll, they never author.
+# Day = business day from enrollment. Email steps are merge fields over prospect custom10..custom14 (path A).
+version: 1
+cadence_business_days: 10
+email_steps:
+  - { step: 1, day: 1,  thread: A, field: custom10 }
+  - { step: 2, day: 3,  thread: A, field: custom11, reply_in_thread: true }
+  - { step: 3, day: 5,  thread: A, field: custom12, reply_in_thread: true }
+  - { step: 4, day: 8,  thread: B, field: custom13 }
+  - { step: 5, day: 10, thread: B, field: custom14, reply_in_thread: true }
+call_steps:     [ { day: 2 }, { day: 4 }, { day: 6 }, { day: 7 }, { day: 9 } ]
+linkedin_steps: [ { day: 2, action: connect }, { day: 5, action: message, requires: connected }, { day: 9, action: message_followup } ]
+tiers:
+  A: { outreach_sequence_id: seq_1, name: 2wk-email-call-li, steps: [email, call, linkedin], daily_cap_per_rep: 20,  requires: [email, phone, li_score_min] }
+  B: { outreach_sequence_id: seq_2, name: 2wk-email-call,    steps: [email, call],           daily_cap_per_rep: 10,  requires: [email, phone] }
+  C: { outreach_sequence_id: seq_3, name: 2wk-email-only,    steps: [email],                 daily_cap_per_rep: 200, requires: [email] }
+  call_only: { outreach_sequence_id: seq_4, name: 2wk-call-only, steps: [call], daily_cap_per_rep: 5, requires: [phone_direct_or_mobile, tier_a_score] }
+enroll_per_day_per_rep: 200
+patch_size: 2000
+patch_weeks: 2
+max_contacts_per_account_per_patch: 4
+promotion:   # engagement moves a contact up a tier mid-sequence
+  to_B: { any_of: [ opens_gte: 2, click: true ] }
+  to_A: { any_of: [ reply: true, website_visit: true ] }

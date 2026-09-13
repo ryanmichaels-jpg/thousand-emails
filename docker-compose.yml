@@ -1,0 +1,24 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: thousand
+      POSTGRES_PASSWORD: thousand
+      POSTGRES_DB: thousand
+    ports: ["5432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U thousand"], interval: 5s, retries: 10 }
+  api:
+    build: ./api
+    environment:
+      DATABASE_URL: postgresql://thousand:thousand@db:5432/thousand
+      FIXTURES_DIR: /app/seed/fixtures
+      SOURCES_CONFIG: /app/config/sources.yaml
+    env_file: [.env]
+    volumes: [".:/app"]
+    working_dir: /app
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+    ports: ["8000:8000"]
+    depends_on: { db: { condition: service_healthy } }
+volumes:
+  pgdata: {}

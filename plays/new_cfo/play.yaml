@@ -1,0 +1,12 @@
+name: new_cfo
+version: 1
+trigger: "a new CFO or VP Finance started in the last 90 days"
+segment: { bands: ["201-1000", "1001-5000", "5000+"], personas: [TRC, HR, FIN] }
+required_facts:
+  - { field: new_exec_hire, max_age_days: 90 }
+  - { field: headcount, max_age_days: 180 }
+optional_facts: [ open_roles_covered, competitor_mentioned, pain_family ]
+default_mode: 2
+modes_allowed: [1, 2, 3, 4]
+autonomy_rung: draft_only     # draft_only | suggested_send | send_with_undo | send
+outcome: { event: meeting, attribution_window_days: 21 }

@@ -1,0 +1,17 @@
+# Call tagging vocabulary. Closed: the tagger may only emit these values. Every tag needs a verbatim evidence quote.
+version: 1
+families:
+  benchmarking:  [ no_reliable_market_data, stale_survey_data, geo_differentials, startup_equity_benchmarks ]
+  planning:      [ budget_uncertainty, headcount_planning, merit_cycle_modeling, range_design ]
+  repricing:     [ salary_reprices, retention_adjustments, pay_compression, promotion_bands ]
+  communicating: [ pay_transparency_law, manager_enablement, employee_questions, offer_explanations ]
+  objection:     [ budget, timing, have_a_survey_vendor, too_small, using_spreadsheets, need_finance_buyin ]
+  competitor:    [ Radford, Mercer, "Carta Total Comp", "Levels.fyi", OpenComp, Assemble, other ]
+  outcome:       [ next_meeting_booked, follow_up_promised, not_now, no_fit, unclear ]
+  next_step:     [ send_deck, intro_to_finance, pricing, trial, none ]
+per_call_max: { pain: 5, objection: 3, competitor: 3 }
+checks: { evidence_quote_verbatim: true, value_in_vocab: true, schema_valid: true, confidence_required: true }
+quarantine_after_retries: 1
+golden_set: seed/fixtures/truth/planted_call_tags.csv
+weekly_sample_share: 0.03
+low_confidence_threshold: 0.6

@@ -1,0 +1,18 @@
+# Title -> persona + seniority. Rules first (auditable); LLM fallback only into this same vocabulary.
+# Scored against seed/fixtures/truth/contact_persona.csv. Update version on any change.
+version: 1
+personas: [HR, TRC, TAL, FIN, OTHER]
+seniority: [C, VP, Director, Manager, IC]
+persona_patterns:   # first match wins, case-insensitive
+  TRC:   ['total rewards', 'compensation', '\bcomp\b', '\brewards?\b', 'comp & ben', 'compensation & benefits']
+  TAL:   ['talent', 'recruit', 'sourcing']
+  HR:    ['\bhr\b', 'human resources', '\bpeople\b', 'chro', 'people ops', 'hrbp', 'employee experience']
+  FIN:   ['\bfinance\b', 'fp&a', '\bcfo\b', 'controller', 'financial', 'accounting']
+  OTHER: ['.*']
+seniority_patterns:
+  C:        ['^chief', '\bc[a-z]o\b', 'founder', '^president']
+  VP:       ['\bvp\b', 'vice president', '\bsvp\b', '\bevp\b']
+  Director: ['director', '\bdir\.?\b', '^head of', '\bhead\b', 'controller']
+  Manager:  ['manager', '\bmgr\b', 'business partner', 'hrbp', 'partner', 'lead']
+  IC:       ['.*']
+llm_fallback: { enabled: true, when: "no persona pattern matched or title looks non-English", model_key: tag_model }

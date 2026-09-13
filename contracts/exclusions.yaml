@@ -1,0 +1,20 @@
+# Rules of engagement as code. Owner: RevOps. Every rule produces exclusion rows with a reason.
+# action: exclude (enforced) | shadow (logged only). Start new rules in shadow, promote when the log looks right.
+version: 1
+rules:
+  - { reason: customer,            action: exclude, where: "account.Type = 'Customer'" }
+  - { reason: open_opp,            action: exclude, where: "exists open opportunity on account (not Closed Won/Lost)" }
+  - { reason: ae_owned,            action: exclude, where: "account.OwnerId like 'ae_%' and account.Type = 'Prospect'" }
+  - { reason: touched_60d,         action: exclude, where: "any task/mailing to contact in last 60 days by anyone" }
+  - { reason: cooldown,            action: exclude, where: "contact_touch_state.eligible_after > today" }
+  - { reason: bounced,             action: exclude, where: "last mailing bounced" }
+  - { reason: unsubscribed,        action: exclude, where: "any reply_kind = unsubscribe or sender suppression" }
+  - { reason: opted_out,           action: exclude, where: "contact.HasOptedOutOfEmail = true" }
+  - { reason: dnc,                 action: exclude, where: "contact.DoNotCall = true", scope: calls_only }
+  - { reason: no_email,            action: exclude, where: "contact.Email is null or email_status = invalid", scope: email_pool }
+  - { reason: not_at_company,      action: exclude, where: "contact.StillAtCompany__c = false" }
+  - { reason: competitor_partner,  action: exclude, where: "account.Type in ('Partner','Competitor','Vendor')" }
+  - { reason: unresolved_identity, action: exclude, where: "contact cannot be matched to an account" }
+  - { reason: in_conversation,     action: exclude, where: "positive reply in last 180 days" }
+cooldowns: { no_response_days: 60, negative_days: 180, unsubscribe: permanent, account_rest_days: 90 }
+concurrency: { reps_per_account: 1 }
