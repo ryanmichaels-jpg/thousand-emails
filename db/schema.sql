@@ -1,6 +1,6 @@
 -- thousand-emails: application schema. raw_* schemas come from seed/load.py (or the real sync);
 -- models.* comes from dbt. This file is the current full state; changes also go in db/migrations/.
-create extension if not exists vector;
+-- create extension if not exists vector;  -- enable when pgvector is installed for this Postgres
 create schema if not exists app;
 set search_path = app, public;
 
@@ -233,7 +233,7 @@ create table if not exists transcript_chunk (
   turn_from integer not null,
   turn_to   integer not null,
   text      text not null,
-  embedding vector(1024)
+  embedding real[]  -- switch to vector(1024) once pgvector is installed
 );
 
 -- ---------------------------------------------------------------- customers and alumni

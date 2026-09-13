@@ -3,7 +3,8 @@ from __future__ import annotations
 import os
 from fastapi import FastAPI
 import psycopg
-
+from dotenv import load_dotenv
+load_dotenv()
 app = FastAPI(title="thousand-emails")
 
 
