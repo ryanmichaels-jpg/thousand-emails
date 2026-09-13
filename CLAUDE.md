@@ -72,9 +72,18 @@ second client on the same MCP tools.
   verbatim; mode 3 applies small variations; mode 2 uses steps 2–5 as follow-up scaffolding; mode 1
   ignores them. Templates are the holdout arm: a permanent 10% of enrollments run mode 4, so drafted
   emails are always measured against the template baseline.
-- Enrollment screen (on the Patch page): play (required), source (required, default "patch"), the four
+- Enroll is a modal opened from any sequence button, never a page of its own: play (required), the four
   modes with per-play and per-tier defaults, batch custom instructions, and an exclusion preview table
-  (prospect, flagged reason, source, action) shown before enrollment commits.
+  (prospect, flagged reason, source, action) shown before enrollment commits. There is no source field:
+  origin is recorded automatically as one of patch / accounts / signals / feed / home.
+- Pages: the patch review page is called Contacts. Accounts: account-level list with filters for
+  headcount, industry, prior opportunity y/n, free benchmarking user y/n, Data Lab signup y/n, "hiring
+  for" as a typed role with alias matching (ML engineer ↔ machine learning engineer), recent hires y/n.
+  Signals: pains by segment with the same filter rail, one-click sequence per pain. Feed: team-wide,
+  detector-driven items with evidence links, including team meetings booked with the pains tagged on the
+  call. Home: plain-language entry over the same MCP tools — paste an email to get matching contacts and
+  a proposed sequence, typed filters, "what's working". Filters on Contacts, Accounts, and Signals are
+  expandable rows with chips: type-to-add for title/industry/location/hiring, include/exclude on industry.
 - Products: play and product are orthogonal. `contracts/products.yaml` (five products: market_data,
   market_pricing, compensation_planning, total_rewards, pave_agent) is the only source of product claims
   a draft may make. Enrollment records a `product_arc` — one product for the whole sequence, or a
@@ -104,7 +113,8 @@ provides the same database plus the API container.
    tiers, enrollment path (idempotent, exclusion re-check), reconciliation job.
 3. Draft engine: two plays, modes 2 and 4, fitness check, decision record, golden set + eval runner.
 4. Gong tagger: pull, tag, check, `call_tag`, facts with source=gong, golden set from `truth/planted_call_tags.csv`.
-5. App: Queue (first), then Patch, then Brief. Login in front. Every action through the API.
+5. App: Queue (first), then Contacts, Accounts, Signals, Feed, Home, Brief. Login in front. Every action
+   through the API.
 6. Loop: stub sender, simulated outcomes, `outcome_event`, meeting resolver, impact dashboard with min cell sizes.
    Play Builder: reps compose plays from name, trigger, segment, required facts from a fixed menu (call
    tags, open roles, Data Lab queries, product usage, LinkedIn activity, exec hire, past-customer link),

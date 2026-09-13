@@ -47,8 +47,30 @@ class RealMarketCard:
 
 
 class RealLLM:
-    """Anthropic SDK with the org API key. Env ANTHROPIC_API_KEY; models come from config/sources.yaml llm block."""
-    def __init__(self, **opts): raise _NotBuilt("RealLLM", "ANTHROPIC_API_KEY; pip install anthropic")
+    """Anthropic messages API with the org key. Env ANTHROPIC_API_KEY; models come from config/sources.yaml.
+    Response parsing is a pure function so tests/contract/ can pin it against recorded responses."""
+
+    def __init__(self, **opts):
+        try:
+            import anthropic
+        except ImportError as e:
+            raise _NotBuilt("RealLLM", "pip install anthropic; ANTHROPIC_API_KEY in .env") from e
+        self._client = anthropic.Anthropic()
+
+    def complete(self, system, user, *, model, max_tokens=800, json_schema=None):
+        import json
+        if json_schema:
+            system = f"{system}\nRespond with a single JSON object matching this schema, no prose:\n{json.dumps(json_schema)}"
+        resp = self._client.messages.create(model=model, max_tokens=max_tokens, system=system,
+                                            messages=[{"role": "user", "content": user}])
+        return self.text_from_response(resp.model_dump())
+
+    @staticmethod
+    def text_from_response(data: dict) -> str:
+        """The messages-API contract this adapter depends on: content is a list of typed blocks."""
+        return "".join(block["text"] for block in data["content"] if block["type"] == "text")
+
+    def embed(self, texts): raise _NotBuilt("RealLLM.embed", "an embeddings provider (transcript-chunk stage)")
 
 
 class OutreachSender:

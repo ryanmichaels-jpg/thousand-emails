@@ -104,18 +104,42 @@ def write_facts(cur: psycopg.Cursor, cache: dict[str, tuple[str, str]]) -> int:
     return len(contacts)
 
 
-def report_accuracy(cache: dict[str, tuple[str, str]]) -> dict[str, Any]:
+def _truth_contacts() -> tuple[dict[str, dict], list[tuple[str, str]]]:
     with open(TRUTH_PATH) as f:
         truth = {r["contact_id"]: r for r in csv.DictReader(f)}
     with open(os.path.join(ROOT, "seed", "fixtures", "salesforce", "contact.csv")) as f:
         contacts = [(r["Id"], r["Title"]) for r in csv.DictReader(f) if r["Id"] in truth]
+    return truth, contacts
+
+
+def rules_coverage(rules: dict) -> tuple[float, int]:
+    """Share of distinct titles the rules alone classify to the truth persona (catch-all -> OTHER).
+
+    This is the honest fixture-mode number: the LLM fallback never has to disambiguate anything here,
+    so persona accuracy says nothing about it. A seed change that introduces titles the rules cannot
+    place will drag this down.
+    """
+    truth, contacts = _truth_contacts()
+    title_truth: dict[str, str] = {}
+    for cid, title in contacts:
+        title_truth.setdefault(title, truth[cid]["persona"])
+    covered = sum(1 for title, persona in title_truth.items()
+                  if (classify_by_rules(title, rules)[0] or "OTHER") == persona)
+    return covered / len(title_truth), len(title_truth)
+
+
+def report_accuracy(cache: dict[str, tuple[str, str]], rules: dict) -> dict[str, Any]:
+    truth, contacts = _truth_contacts()
     p_hit = s_hit = 0
     for cid, title in contacts:
         persona, seniority = cache[title]
         p_hit += persona == truth[cid]["persona"]
         s_hit += seniority == truth[cid]["seniority"]
     n = len(contacts)
-    acc = {"contacts": n, "persona_accuracy": round(p_hit / n, 4), "seniority_accuracy": round(s_hit / n, 4)}
+    coverage, n_titles = rules_coverage(rules)
+    acc = {"contacts": n, "persona_accuracy": round(p_hit / n, 4), "seniority_accuracy": round(s_hit / n, 4),
+           "rules_coverage": round(coverage, 4), "distinct_titles": n_titles}
     print(f"accuracy vs truth/contact_persona.csv: persona {acc['persona_accuracy']:.2%}, "
           f"seniority {acc['seniority_accuracy']:.2%} over {n} contacts")
+    print(f"rules coverage: {coverage:.2%} of {n_titles} distinct titles; LLM fallback: untested in fixture mode")
     return acc

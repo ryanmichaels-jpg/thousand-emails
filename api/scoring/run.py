@@ -29,7 +29,7 @@ def run(database_url: str | None = None) -> dict[str, Any]:
         version = str(rules["version"])
         cache = personas.classify_titles(cur, rules)
         personas.write_facts(cur, cache)
-        accuracy = personas.report_accuracy(cache)
+        accuracy = personas.report_accuracy(cache, rules)
         table, pooled = lift.build_persona_lift(cur, version)
         seniority_lift = lift.build_seniority_lift(cur)
         _print_lift(table)
