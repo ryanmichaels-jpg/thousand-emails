@@ -40,8 +40,13 @@ class FixtureOutreach:
         self.states: dict[tuple[str, str], str] = {} # (prospect, sequence) -> state id
         self.finished: dict[str, str] = {}
         for r in _read("outreach", "prospect"): self.prospects[r["email"]] = r["id"]
-    def pull(self, resource, since=None): yield from _read("outreach", resource)
-    def count(self, resource): return sum(1 for _ in _read("outreach", resource))
+    def pull(self, resource, since=None):
+        yield from _read("outreach", resource)
+        if resource == "sequence_state":     # states created through this adapter, like the real API would return
+            for (pid, seq), sid in self.states.items():
+                yield {"id": sid, "prospect_id": pid, "sequence_id": seq, "state": "active", "reply_kind": "",
+                       "started_at": datetime.now(UTC).date().isoformat(), "finished_at": "", "owner": ""}
+    def count(self, resource): return sum(1 for _ in self.pull(resource))
     def list_sequences(self): return list(_read("outreach", "sequence"))
     def upsert_prospect(self, contact):
         email = contact["Email"].lower()

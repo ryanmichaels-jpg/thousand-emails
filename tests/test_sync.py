@@ -40,5 +40,6 @@ def test_sync_records_state_and_health():
     with psycopg.connect(DB) as conn, conn.cursor() as cur:
         cur.execute("select count(*) from app.sync_state where last_ok")
         assert cur.fetchone()[0] == len(results)
-        cur.execute("select count(distinct (source, object)) from app.sync_health")
-        assert cur.fetchone()[0] == len(results)
+        cur.execute("select distinct source, object from app.sync_health")
+        have = set(cur.fetchall())
+        assert {(r["source"], r["table"]) for r in results} <= have

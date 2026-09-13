@@ -44,7 +44,7 @@ create index if not exists contact_fact_lookup on contact_fact (contact_id, fiel
 create table if not exists exclusion (
   contact_id  text not null,
   account_id  text,
-  reason      text not null,                   -- 'customer','open_opp','ae_owned','touched_60d','bounced','unsubscribed','dnc','opted_out','no_email','not_at_company','cooldown','competitor_partner'
+  reason      text not null,                   -- 'customer','open_opp','ae_owned','touched_60d','bounced','unsubscribed','dnc','opted_out','no_email','not_at_company','cooldown','competitor_partner','unresolved_identity','in_conversation'
   source      text not null,
   action      text not null default 'exclude', -- 'exclude' | 'shadow' (logged, not enforced)
   computed_at timestamptz not null default now(),
@@ -143,6 +143,7 @@ create table if not exists enrollment (
   outreach_prospect_id text,
   outreach_state_id    text,
   product_arc          jsonb,                     -- {"all": product} or {"steps_1_3": p1, "steps_4_5": p2}; products.yaml keys
+  origin               text not null default 'patch' check (origin in ('patch', 'accounts', 'signals', 'feed', 'home')),
   enrolled_by          text not null references users(id),
   enrolled_at          timestamptz not null default now(),
   exclusion_checked_at timestamptz not null,
