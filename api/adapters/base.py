@@ -22,6 +22,7 @@ class Salesforce(Protocol):
 class Outreach(Protocol):
     """Sequence definitions, prospects, sequence states, mailings. Enrollment goes through here."""
     def pull(self, resource: str, since: datetime | None) -> Iterator[Row]: ...
+    def count(self, resource: str) -> int: ...                                             # JSON:API meta.count in the real client
     def upsert_prospect(self, contact: Row) -> str: ...                                        # returns prospect id; idempotent by email
     def set_custom_fields(self, prospect_id: str, fields: dict[str, str]) -> None: ...        # custom10..custom14 carry drafted bodies (path A)
     def add_to_sequence(self, prospect_id: str, sequence_id: str, mailbox_id: str | None) -> str: ...  # returns sequence_state id; idempotent
@@ -31,6 +32,7 @@ class Outreach(Protocol):
 
 class Gong(Protocol):
     def list_calls(self, since: datetime | None) -> Iterator[Row]: ...
+    def count_calls(self, since: datetime | None) -> int: ...                              # records.totalRecords in the real client
     def get_transcripts(self, call_ids: list[str]) -> Iterator[Row]: ...                     # batches of <=100 ids
     def get_call_parties(self, call_id: str) -> list[Row]: ...
 
@@ -39,6 +41,7 @@ class BigQuery(Protocol):
     """Product usage: free market-data users, searches, Data Lab questions."""
     def query(self, sql: str) -> Iterator[Row]: ...
     def export_table(self, table: str, since: datetime | None) -> Iterator[Row]: ...
+    def count(self, table: str) -> int: ...
 
 
 class Enrichment(Protocol):
@@ -51,6 +54,7 @@ class Enrichment(Protocol):
 
 class Calendar(Protocol):
     def events(self, since: datetime | None) -> Iterator[Row]: ...
+    def count_events(self, since: datetime | None) -> int: ...
 
 
 @dataclass
