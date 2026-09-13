@@ -1,5 +1,7 @@
 name: new_cfo
 version: 1
+owner: manager_1              # central play; Play Builder plays start owned by the rep who made them
+visibility: org               # org | private; Play Builder plays start private + draft-only until promoted
 trigger: "a new CFO or VP Finance started in the last 90 days"
 segment: { bands: ["201-1000", "1001-5000", "5000+"], personas: [TRC, HR, FIN] }
 required_facts:

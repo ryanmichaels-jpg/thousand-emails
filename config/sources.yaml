@@ -9,6 +9,7 @@ sources:
   calendar:   { mode: fixture }
   sender:     { mode: fixture }   # fixture = StubSender; real = OutreachSender (path A) or PoolSender (path B)
   llm:        { mode: fixture }   # fixture = deterministic stub; real = Anthropic (models in the llm block below)
+  market_card: { mode: fixture }  # fixture = placeholder card urls; real = card renderer service
 llm:
   provider: anthropic
   draft_model: claude-sonnet-4-5        # cheap enough for 10k drafts/day; pin and record in draft.model

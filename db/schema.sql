@@ -142,10 +142,35 @@ create table if not exists enrollment (
   mode                 smallint not null check (mode between 1 and 4),
   outreach_prospect_id text,
   outreach_state_id    text,
+  product_arc          jsonb,                     -- {"all": product} or {"steps_1_3": p1, "steps_4_5": p2}; products.yaml keys
   enrolled_by          text not null references users(id),
   enrolled_at          timestamptz not null default now(),
   exclusion_checked_at timestamptz not null,
   unique (contact_id, sequence_id, patch_id)
+);
+
+-- ---------------------------------------------------------------- voice
+create table if not exists voice_profile (
+  id          text primary key,
+  rep_id      text not null references users(id),
+  version     integer not null,
+  profile_md  text not null,
+  dos         jsonb not null default '[]',
+  donts       jsonb not null default '[]',
+  approved_at timestamptz,                        -- null until the rep saves/approves; every save is a new version
+  created_at  timestamptz not null default now(),
+  unique (rep_id, version)
+);
+
+create table if not exists voice_example (
+  id         text primary key,
+  rep_id     text not null references users(id),
+  source     text not null check (source in ('sent', 'pasted', 'written')),
+  body       text not null,
+  replied    boolean,                             -- did this sent email get a reply (weighting signal); null for pasted/written
+  included   boolean not null default true,
+  weight     numeric not null default 1,
+  created_at timestamptz not null default now()
 );
 
 -- ---------------------------------------------------------------- the decision record
@@ -161,6 +186,7 @@ create table if not exists draft (
   mode              smallint not null,
   source            text not null,                -- prospect source: 'patch','inbound','reactivation'
   skill_version     text not null,
+  voice_version     integer,                      -- voice_profile.version applied to this draft; null = no voice
   prompt_hash       text not null,
   model             text not null,
   inputs_read       jsonb not null,               -- [{table, id, field, as_of}] every fact the draft saw

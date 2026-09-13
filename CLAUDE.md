@@ -61,6 +61,28 @@ second client on the same MCP tools.
 - Auth: `api/auth/` has a local users implementation (seeded `sdr_1`, `sdr_2`, `manager`) and an OIDC stub for
   Google Workspace. Roles: rep, manager, admin. Every write carries user_id.
 - Wrapper: Claude Agent SDK app with the org API key (reps need no seats), same MCP tools as the web app.
+- Voice: each rep has a versioned voice profile (`voice_profile`: profile_md + do/don't lists) built from
+  the rep's own non-template sent emails weighted by replies (`voice_example`). It applies after the play
+  skill and before batch custom instructions, and can never override a play's never-list, fitness, or
+  exclusions. Settings → Voice: profile fields; examples picked from sent / pasted / written with
+  include-exclude; do and don't lists with conflict flags; side-by-side preview (with vs without voice).
+  Every save is a new approved version; each draft records the `voice_version` that shaped it. Weekly
+  edit-diff clustering proposes profile changes; the rep accepts or rejects them.
+- Templates: every play folder has `templates/step1.md`–`step5.md` with merge fields. Mode 4 sends them
+  verbatim; mode 3 applies small variations; mode 2 uses steps 2–5 as follow-up scaffolding; mode 1
+  ignores them. Templates are the holdout arm: a permanent 10% of enrollments run mode 4, so drafted
+  emails are always measured against the template baseline.
+- Enrollment screen (on the Patch page): play (required), source (required, default "patch"), the four
+  modes with per-play and per-tier defaults, batch custom instructions, and an exclusion preview table
+  (prospect, flagged reason, source, action) shown before enrollment commits.
+- Products: play and product are orthogonal. `contracts/products.yaml` (five products: market_data,
+  market_pricing, compensation_planning, total_rewards, pave_agent) is the only source of product claims
+  a draft may make. Enrollment records a `product_arc` — one product for the whole sequence, or a
+  steps 1–3 / steps 4–5 split — recommended from facts, editable by the rep, measured as
+  play × product × mode.
+- Market cards: the MarketCard adapter (`render_market_card(job_family, location, filters) -> url`)
+  renders comp-data snapshot cards. Emails link to cards, never inline them, by default; card vs no-card
+  is holdout-tested before becoming standard.
 
 ## How to run
 
@@ -84,6 +106,10 @@ provides the same database plus the API container.
 4. Gong tagger: pull, tag, check, `call_tag`, facts with source=gong, golden set from `truth/planted_call_tags.csv`.
 5. App: Queue (first), then Patch, then Brief. Login in front. Every action through the API.
 6. Loop: stub sender, simulated outcomes, `outcome_event`, meeting resolver, impact dashboard with min cell sizes.
+   Play Builder: reps compose plays from name, trigger, segment, required facts from a fixed menu (call
+   tags, open roles, Data Lab queries, product usage, LinkedIn activity, exec hire, past-customer link),
+   product arc, plain-language instructions, templates, and examples; output is a standard play folder
+   with owner and visibility, starting private and draft-only, promotable by a manager.
 7. Wrapper: Agent SDK app, MCP tools, per-rep identity, tool-call logging.
 
 ## Conventions

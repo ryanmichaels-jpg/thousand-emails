@@ -41,6 +41,11 @@ class RealCalendar:
     def __init__(self, **opts): raise _NotBuilt("RealCalendar", "workspace calendar credentials")
 
 
+class RealMarketCard:
+    """Card renderer service (or headless chart render + object storage). Returns a stable public URL."""
+    def __init__(self, **opts): raise _NotBuilt("RealMarketCard", "card renderer endpoint + public bucket")
+
+
 class RealLLM:
     """Anthropic SDK with the org API key. Env ANTHROPIC_API_KEY; models come from config/sources.yaml llm block."""
     def __init__(self, **opts): raise _NotBuilt("RealLLM", "ANTHROPIC_API_KEY; pip install anthropic")

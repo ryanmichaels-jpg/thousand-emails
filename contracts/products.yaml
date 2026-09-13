@@ -1,0 +1,59 @@
+# The only source of product claims a draft may make. If a claim is not in approved_claims here,
+# no draft can say it, in any mode. TODO claims are placeholders: replace with legal/marketing-approved
+# language before any real send. Update version on any change.
+version: 1
+products:
+  market_data:
+    name: Market Data
+    approved_claims:
+      - "TODO: real-time compensation benchmarks sourced from connected HRIS/equity systems, not annual surveys"
+      - "TODO: benchmarks cut by industry, headcount band, stage, and location"
+    proof_points:
+      - "TODO: number of companies contributing live data"
+      - "TODO: data freshness stat vs traditional survey lag"
+    persona_fit: [TRC, FIN, HR]
+    pain_families: [benchmarking]
+    relevant_facts: [headcount, searches, datalab_questions, competitor_mentioned]
+
+  market_pricing:
+    name: Market Pricing
+    approved_claims:
+      - "TODO: price every role against live percentiles without maintaining a survey-matching spreadsheet"
+      - "TODO: geo differentials handled from the same dataset"
+    proof_points:
+      - "TODO: time-to-price a job family before/after stat"
+    persona_fit: [TRC, FIN]
+    pain_families: [benchmarking, repricing]
+    relevant_facts: [open_roles_covered, headcount, searches]
+
+  compensation_planning:
+    name: Compensation Planning
+    approved_claims:
+      - "TODO: run merit cycles with budgets, guidelines, and approvals in one place"
+      - "TODO: model a cycle against live market movement before committing budget"
+    proof_points:
+      - "TODO: cycle-length reduction stat from a named customer"
+    persona_fit: [TRC, HR, FIN]
+    pain_families: [planning, repricing]
+    relevant_facts: [headcount, new_exec_hire, pain_family]
+
+  total_rewards:
+    name: Total Rewards
+    approved_claims:
+      - "TODO: employees see salary, equity, and benefits in one statement they can actually read"
+      - "TODO: managers explain pay decisions with the same numbers comp approved"
+    proof_points:
+      - "TODO: employee comprehension / manager confidence stat"
+    persona_fit: [HR, TRC]
+    pain_families: [communicating]
+    relevant_facts: [headcount, pain_family, li_activity]
+
+  pave_agent:
+    name: Pave Agent
+    approved_claims:
+      - "TODO: comp questions answered from your own ranges and policies, with citations"
+    proof_points:
+      - "TODO: deflection/time-saved placeholder"
+    persona_fit: [TRC, HR]
+    pain_families: [communicating, planning]
+    relevant_facts: [datalab_questions, pain_family]

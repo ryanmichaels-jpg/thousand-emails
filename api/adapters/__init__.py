@@ -13,7 +13,7 @@ CONFIG = os.environ.get("SOURCES_CONFIG", os.path.join(os.path.dirname(__file__)
 FIXTURE = {
     "salesforce": fixture.FixtureSalesforce, "outreach": fixture.FixtureOutreach, "gong": fixture.FixtureGong,
     "bigquery": fixture.FixtureBigQuery, "enrichment": fixture.FixtureEnrichment, "calendar": fixture.FixtureCalendar,
-    "sender": fixture.StubSender, "llm": fixture.FixtureLLM,
+    "sender": fixture.StubSender, "llm": fixture.FixtureLLM, "market_card": fixture.FixtureMarketCard,
 }
 
 
@@ -26,7 +26,8 @@ def llm_settings() -> dict:
 def _real(name: str):
     from . import real  # imported lazily so fixture mode never needs vendor SDKs installed
     return {"salesforce": real.RealSalesforce, "outreach": real.RealOutreach, "gong": real.RealGong, "bigquery": real.RealBigQuery,
-            "enrichment": real.RealEnrichment, "calendar": real.RealCalendar, "sender": real.OutreachSender, "llm": real.RealLLM}[name]
+            "enrichment": real.RealEnrichment, "calendar": real.RealCalendar, "sender": real.OutreachSender, "llm": real.RealLLM,
+            "market_card": real.RealMarketCard}[name]
 
 
 @cache

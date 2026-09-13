@@ -108,6 +108,15 @@ class FixtureCalendar:
     def count_events(self, since=None): return sum(1 for _ in _read("calendar", "event"))
 
 
+class FixtureMarketCard:
+    """Placeholder cards: deterministic URLs that a browser would 404 on. The real renderer swaps in
+    behind the same call; nothing downstream should parse these URLs."""
+    def render_market_card(self, job_family, location, filters=None):
+        slug = "/".join(s.lower().replace(" ", "-") for s in (job_family, location))
+        query = "&".join(f"{k}={v}" for k, v in sorted((filters or {}).items()))
+        return f"https://cards.pave.test/{slug}" + (f"?{query}" if query else "")
+
+
 class FixtureLLM:
     """Deterministic stand-in. The only prompt stage 2 sends is the persona fallback, which in the
     fixture world is only reached by titles outside the HR/TRC/TAL/FIN vocabularies -- so OTHER is

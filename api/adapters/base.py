@@ -53,6 +53,12 @@ class Enrichment(Protocol):
     def verify_email(self, emails: list[str]) -> dict[str, str]: ...                          # email -> verified|catch_all|unverified|invalid
 
 
+class MarketCard(Protocol):
+    """Rendered market-data snapshot cards. Emails link to cards (never inline images) by default,
+    and card-vs-no-card is holdout-tested before it becomes standard."""
+    def render_market_card(self, job_family: str, location: str, filters: dict[str, Any] | None = None) -> str: ...  # returns a url
+
+
 class Calendar(Protocol):
     def events(self, since: datetime | None) -> Iterator[Row]: ...
     def count_events(self, since: datetime | None) -> int: ...
