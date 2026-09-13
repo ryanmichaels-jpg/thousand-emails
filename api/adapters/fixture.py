@@ -36,6 +36,7 @@ class FixtureOutreach:
         self.finished: dict[str, str] = {}
         for r in _read("outreach", "prospect"): self.prospects[r["email"]] = r["id"]
     def pull(self, resource, since=None): yield from _read("outreach", resource)
+    def count(self, resource): return sum(1 for _ in _read("outreach", resource))
     def list_sequences(self): return list(_read("outreach", "sequence"))
     def upsert_prospect(self, contact):
         email = contact["Email"].lower()
@@ -51,6 +52,7 @@ class FixtureOutreach:
 
 class FixtureGong:
     def list_calls(self, since=None): yield from _read("gong", "call")
+    def count_calls(self, since=None): return sum(1 for _ in _read("gong", "call"))
     def get_transcripts(self, call_ids):
         want = set(call_ids)
         with open(os.path.join(FIXTURES, "gong", "transcript.jsonl")) as f:
@@ -67,6 +69,7 @@ class FixtureBigQuery:
     TABLES = {"users": "users", "searches": "searches", "datalab_queries": "datalab_queries"}
     def query(self, sql): raise NotImplementedError("fixture BigQuery supports export_table only; put SQL in dbt")
     def export_table(self, table, since=None): yield from _read("bigquery", self.TABLES[table])
+    def count(self, table): return sum(1 for _ in _read("bigquery", self.TABLES[table]))
 
 
 class FixtureEnrichment:
@@ -97,6 +100,7 @@ class FixtureCalendar:
     def events(self, since=None):
         for r in _read("calendar", "event"):
             r["attendees"] = json.loads(r["attendees"]); yield r
+    def count_events(self, since=None): return sum(1 for _ in _read("calendar", "event"))
 
 
 class StubSender:
